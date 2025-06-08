@@ -106,14 +106,13 @@ export async function deleteCanceledOrder(id: string) {
 
 export const createOrder = async (shopId: string,addressId: string,note?: string) => {
     const res = await axios.post(`${apiRoot}/orders`, {
+        shopId,
+        addressId,
+        note
+    }, {
         headers: { 
             Authorization: `Bearer ${useTokenStore().token}`
         },
-        data: {
-            shopId,
-            addressId,
-            note
-        }
     })
     return res.data as createOrderreturn
 }

@@ -39,9 +39,9 @@ const navItems = computed(() => {
     label: '订单',
     icon: FileTextOutlined,
     path: [
-      '/customer/order',
+      '/orders',
       '/merchant/order',
-      '/rider/recommend'
+      '/orders'
     ]
   }
   let myPage = {

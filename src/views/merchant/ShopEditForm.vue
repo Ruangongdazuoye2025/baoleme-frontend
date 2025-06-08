@@ -316,9 +316,6 @@ const formRules: FormRules = {
     openTimeEnd: [
     { type: 'number', required: true, message: '请选择营业结束时间', trigger: ['change', 'blur'] },
     { validator: (rule: FormItemRule, value: number) => { // value 是分钟数
-        if (formData.value && formData.value.openTimeStart !== null && value !== null && value <= formData.value.openTimeStart) {
-            return new Error('结束时间必须晚于开始时间');
-        }
         return true;
         },
         trigger: ['change', 'blur'] // 当 openTimeStart 或 openTimeEnd 的分钟数变化时触发

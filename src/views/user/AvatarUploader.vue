@@ -36,6 +36,7 @@ const handleError = ({ file, event } : { file: UploadFileInfo, event?: ProgressE
                 :src="imageSrc"
                 :width="320"
                 :height="320"
+                fallback-src="/default-avatar.webp"
             />
             <n-upload
                 :action="`${apiRoot}/user/${props.userId}/avatar`"

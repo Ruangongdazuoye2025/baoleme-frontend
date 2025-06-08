@@ -5,7 +5,7 @@ import type {
     GetRecommendedShopsRequest, 
     RecommendedShop,
     GetRecommendedItemsRequest,
-    RecommendedProduct 
+    RecommendedItem 
 } from '@/types/recommend';
 
 /**
@@ -30,11 +30,11 @@ export const getRecommendedShops = async (params: GetRecommendedShopsRequest): P
  * @param params 请求查询参数
  * @returns 商品列表
  */
-export const getRecommendedItems = async (params: GetRecommendedItemsRequest): Promise<RecommendedProduct[]> => {
+export const getRecommendedItems = async (params: GetRecommendedItemsRequest): Promise<RecommendedItem[]> => {
     const token = useTokenStore().token;
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-    const response = await axios.get<RecommendedProduct[]>(`${apiRoot}/recommended/items`, {
+    const response = await axios.get<RecommendedItem[]>(`${apiRoot}/recommended/items`, {
         params,
         headers
     });

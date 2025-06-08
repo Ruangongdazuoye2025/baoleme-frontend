@@ -120,29 +120,7 @@ export interface RecommendItem {
 }
 
 
-export interface createOrderreturn {
-    id: string;
-    status: Status;
-    createdAt: Date;
-    paidAt?: Date;
-    preparedAt?: Date;
-    deliveredAt?: Date;
-    finishedAt?: Date;
-    canceledAt?: Date;
-    customer: string;
-    shop: string;
-    rider?: string;
-    items: OrderItem[];
-    deliveryFee: number;
-    total: number;
-    note?: string;
-    delivery: {
-        latitude: number;
-        longitude: number;
-    };
-    shopAddress: Address;
-    customerAddress: Address;
-}
+export interface createOrderreturn extends Order {}
 
 // 、、、、、、、、、、、、、、、、、、、、、、
 export interface ItemBaseInfo {

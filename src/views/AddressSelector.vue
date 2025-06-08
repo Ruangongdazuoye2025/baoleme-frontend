@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, watchEffect, ref, watch } from "vue";
 import AMapLoader from "@amap/amap-jsapi-loader";
 import { NButton, NInput, NInputGroup, useMessage, NInfiniteScroll, NList, NListItem, NThing, c } from "naive-ui";
 import { CheckCircleFilled } from "@vicons/antd";
+import { useGeolocation } from "@/composables/useGeolocation";
 
 (window as any)._AMapSecurityConfig = {
     serviceHost: import.meta.env.VITE_AMAP_SERVICE,
@@ -47,6 +48,14 @@ onMounted(async () => {
         marker.setPosition(center)
         updatePlaces()
     })
+    const geolocation = useGeolocation()
+    try {
+        const location = await geolocation.getCurrentLocation()
+        map.setCenter(AMap.LngLat(location.longitude, location.latitude))
+        marker.setPosition(AMap.LngLat(location.longitude, location.latitude))
+    } catch (error) {
+        message.error("获取当前位置失败，请手动选择地址")
+    }
     await updatePlaces()
 })
 

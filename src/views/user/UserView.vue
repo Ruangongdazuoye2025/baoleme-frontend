@@ -113,6 +113,7 @@ const handleAvatarClicked = () => {
               <n-avatar
                 :size="96"
                 :src="userData?.avatar.thumbnail"
+                fallback-src="/default-avatar.webp"
                 @click="handleAvatarClicked"
               />
             </n-flex>

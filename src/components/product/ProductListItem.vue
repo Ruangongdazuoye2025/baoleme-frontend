@@ -18,8 +18,10 @@
       <p class="product-description">{{ product.description }}</p>
       <p class="product-sale">月售 {{ product.sale }} 评分 {{ (product.rating / 10).toFixed(1) }}</p>
       <n-space justify="space-between" align="center" class="product-footer">
-        <span class="product-price">¥{{ (product.price / 100).toFixed(2) }}</span>
-        
+        <div>
+          <span class="product-price">¥{{ (product.price / 100).toFixed(2) }}</span>
+          <span v-if="product.priceWithoutPromotion > product.price" class="product-price-del">¥{{ (product.priceWithoutPromotion / 100).toFixed(2) }}</span>
+        </div>
         <n-button v-if="product.stockout" size="small" disabled>
           已售罄
         </n-button>
@@ -111,5 +113,10 @@ const handleAddToCart = () => {
   font-size: 18px;
   font-weight: bold;
   color: #ff4d4f;
+}
+.product-price-del {
+  margin-left: 4px;
+  text-decoration: line-through;
+  color: #0000007f
 }
 </style>

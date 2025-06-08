@@ -81,7 +81,7 @@
         <!-- 订单总额 -->
         <div class="total-price">
           <span>订单总额</span>
-          <span>¥{{ cartInfo.total.toFixed(2) }}</span>
+          <span>¥{{ (cartInfo.total + shopInfo.deliveryPrice).toFixed(2) }}</span>
         </div>
       </div>
 
@@ -155,7 +155,7 @@
       <!-- 底部提交栏（移动到支付方式下面） -->
       <div class="bottom-bar">
         <div class="total-section">
-          <div class="total-amount">¥{{ cartInfo.total.toFixed(2) }}</div>
+          <div class="total-amount">¥{{ (cartInfo.total + shopInfo.deliveryPrice).toFixed(2) }}</div>
         </div>
         <div class="submit-section">
           <n-button 
@@ -179,6 +179,22 @@
         <n-button type="primary" @click="confirmPayment">去支付</n-button>
       </template>
     </n-modal>
+
+    <!-- 地址选择模态框 -->
+    <n-modal v-model:show="showAddressSelectModal" preset="card" title="选择收货地址" style="max-width: 500px;">
+      <div style="max-height: 400px; overflow-y: auto;">
+        <AddressSelect
+          v-model:addressId="tempSelectedAddressId"
+          style="min-width: 320px;"
+        />
+      </div>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="handleAddressSelectCancel">取消</n-button>
+          <n-button type="primary" @click="handleAddressSelectConfirm">确定</n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -189,6 +205,9 @@ import {
   ArrowLeftOutlined, 
   RightOutlined, 
   EnvironmentOutlined,
+  WechatFilled,
+  AlipayCircleFilled,
+  CreditCardOutlined
 } from '@vicons/antd'
 import { getAddresses } from '@/api/address'
 import { getCart, getCartItems } from '@/api/cart'
@@ -198,6 +217,7 @@ import type { Address } from '@/types/address'
 import { useMessage } from 'naive-ui'
 import type { CartItem } from '@/types/cart'
 import { Status } from '@/types/order'
+import AddressSelect from '@/views/customer/address/AddressSelect.vue'
 const router = useRouter()
 const route = useRoute()
 const message = useMessage()
@@ -216,7 +236,7 @@ const cartInfo = ref({
 })
 
 // 修改cartItems定义
-const cartItems = ref<CartItem[]>([]) // 明确泛型类型
+const cartItems = ref<CartItem[]>([])
 
 // 店铺信息
 const shopInfo = ref({
@@ -236,9 +256,9 @@ const formatAddress = (address: Address): string => {
 }
 
 // TODO 跳转到地址选择页面
-const handleSelectAddress = () => {
-  router.push('/address/select')
-}
+// const handleSelectAddress = () => {
+//   router.push('/address/select')
+// }
 
 // 确认支付弹窗
 const showPaymentConfirmModal = ref(false)
@@ -255,7 +275,7 @@ const handleSubmitOrder = async () => {
     
     const shopId = shopInfo.value.id
     const addressId = selectedAddress.value.id
-    const note = orderNote.value || undefined
+    const note = orderNote.value || ''
     
     
     const result = await createOrder(shopId,addressId,note)
@@ -277,7 +297,7 @@ const handleSubmitOrder = async () => {
 const cancelPayment = () => {
   showPaymentConfirmModal.value = false
   message.info('您可以稍后在订单列表中完成支付')
-  router.push(`/customer/order/${createdOrderId}`) // 跳转到订单详情
+  router.push(`/orders/${createdOrderId}`) // 跳转到订单详情
 }
 
 // 确认支付
@@ -286,7 +306,7 @@ const confirmPayment = async () => {
     const result = await updateOrderStatus(createdOrderId,Status.Preparing)
     if (result) {
       message.success('支付成功')
-      router.push(`/customer/order/${createdOrderId}`)
+      router.push(`/orders/${createdOrderId}`)
     } else {
       message.error('支付失败')
     }
@@ -328,9 +348,24 @@ const loadCartInfo = async () => {
       getCartItems(shopId),
       getShopInfo(shopId)
     ])
-    cartInfo.value = cartData
-    cartItems.value = cartItemsData
-    shopInfo.value = shopData
+    // 金额单位分转元
+    cartInfo.value = {
+      ...cartData,
+      total: (cartData.total || 0) / 100,
+      totalWithoutPromotion: (cartData.totalWithoutPromotion || 0) / 100
+    }
+    cartItems.value = cartItemsData.map(item => ({
+      ...item,
+      item: {
+        ...item.item,
+        price: (item.item.price || 0) / 100,
+        priceWithoutPromotion: (item.item.priceWithoutPromotion || 0) / 100
+      }
+    }))
+    shopInfo.value = {
+      ...shopData,
+      deliveryPrice: (shopData.deliveryPrice || 0) / 100
+    }
   } catch (error) {
     console.error('获取购物车信息失败:', error)
     message.error('获取购物车信息失败')
@@ -338,10 +373,42 @@ const loadCartInfo = async () => {
 }
 const orderNote = ref('')
 const showRemarkModal = ref(false)
+
+// 地址选择模态框相关
+const showAddressSelectModal = ref(false)
+const tempSelectedAddressId = ref<string | null>(null)
+
+const openAddressSelect = () => {
+  tempSelectedAddressId.value = selectedAddress.value?.id || null
+  showAddressSelectModal.value = true
+}
+
+const handleAddressSelectCancel = () => {
+  showAddressSelectModal.value = false
+}
+
+const handleAddressSelectConfirm = () => {
+  // 只在点击确定时同步到 selectedAddress 和 query
+  const addr = addresses.value.find(addr => addr.id === tempSelectedAddressId.value)
+  if (addr) {
+    // 先判断 id 是否变化，变化才赋值，确保响应式
+    if (!selectedAddress.value || selectedAddress.value.id !== addr.id) {
+      selectedAddress.value = { ...addr }
+      router.replace({ query: { ...route.query, addressId: addr.id } })
+    }
+  }
+  showAddressSelectModal.value = false
+}
+
 onMounted(() => {
   loadAddresses()
   loadCartInfo()
 })
+
+// 修改 handleSelectAddress
+const handleSelectAddress = () => {
+  openAddressSelect()
+}
 </script>
 
 <style scoped>

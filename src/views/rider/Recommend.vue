@@ -293,8 +293,9 @@ const getLocation = async () => {
 }
 
 // 重置分页并重新获取数据
-const resetAndFetch = () => {
-  currentPage.value = 1
+const resetAndFetch = async () => {
+  await getLocation()
+  currentPage.value = 0
   hasMore.value = true
   orders.value = []
   fetchOrders()

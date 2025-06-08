@@ -2,7 +2,7 @@
   <n-page>
     <div class="tab-bar mt-4">
       <div class="tab-wrapper">
-        <n-tabs type="line" v-model:value="currentTab" animated class="custom-tabs">
+        <n-tabs v-if="userRole === 'customer'" type="line" v-model:value="currentTab" animated class="custom-tabs">
           <n-tab-pane name="all" tab="全部" />
           <n-tab-pane name="unpaid" tab="待支付" />
           <n-tab-pane name="preparing" tab="制作中" />
@@ -11,22 +11,29 @@
           <n-tab-pane name="finished" tab="已完成" />
           <n-tab-pane name="cancelled" tab="已取消" />
         </n-tabs>
+        <n-tabs v-else-if="userRole === 'rider'" type="line" v-model:value="currentTab" animated class="custom-tabs">
+          <n-tab-pane name="delivering" tab="配送中" />
+          <n-tab-pane name="finished" tab="已完成" />
+        </n-tabs>
       </div>
       <!-- 搜索框已移除 -->
     </div>
 
     <div class="order-list mt-4">
-      <!-- 订单卡片 -->
-      <n-space vertical :size="12" class="mt-4">
-        <OrderCard v-for="order in filteredOrders" :key="order.id" :order="order" :cover="shopCoverMap[order.shop || '']" />
-      </n-space>
-      <n-skeleton height="40px"  :sharp="false" />
-
+      <n-infinite-scroll
+        :loading="isLoading"
+        :disabled="!hasMore"
+        @load="loadMoreOrders"
+        class="order-scroll-list"
+      >
+        <n-space vertical :size="12" class="mt-4">
+          <OrderCard v-for="order in orders" :order="order" />
+        </n-space>
+        <n-skeleton v-if="isLoading" height="40px" :sharp="false" />
+        <div v-if="!hasMore && orders.length > 0" class="no-more">没有更多订单了</div>
+      </n-infinite-scroll>
     </div>
     <p v-if="isTimeOut" class="no-orders" style="justify-self: center;">加载超时，重试</p>
-    <div class="pagination-wrapper mt-4">
-      <n-pagination v-model:page="page" :page-count="pageCount" :page-size="pageSize" @update:page="handlePageChange" />
-    </div>
   </n-page>
   <!-- 回到顶部Back Top -->
   <n-back-top :right="40" :bottom="160">
@@ -60,13 +67,13 @@ const router = useRouter()
 // 加载数据
 const isLoading = ref(false)
 const hasMore = ref(true)
-const currentPage = ref(1)
-const itemsPerPage = 5
+const currentPage = ref(0)
+const itemsPerPage = 10
 
 const total = ref(0)
 const page = ref(0)
 const pageSize = 5
-const pageCount = ref(1)
+const pageCount = ref(0)
 const statusMap: Record<string, Status | undefined> = {
   all: undefined,
   unpaid: Status.Unpaid,
@@ -181,6 +188,53 @@ const currentPageOrders = computed(() => {
 function handlePageChange(newPage: number) {
   page.value = newPage
 }
+
+// 无限滚动实现
+async function loadMoreOrders() {
+  if (isLoading.value || !hasMore.value) return
+  isLoading.value = true
+  try {
+    const status = statusMap[currentTab.value]
+    let newOrders: Order[] = []
+    if (userRole.value === 'customer') {
+      newOrders = await fetchCustomerOrderList(currentPage.value, itemsPerPage, status)
+    } else if (userRole.value === 'rider') {
+      newOrders = await fetchRiderOrderList(currentPage.value, itemsPerPage, status)
+    }
+    if (newOrders.length > 0) {
+      orders.value.push(...newOrders)
+      currentPage.value++
+      // 级联查店铺封面
+      for (const order of newOrders) {
+        if (order.shop && !shopCoverMap.value[order.shop]) {
+          try {
+            const shop = await getShopInfo(order.shop)
+            shopCoverMap.value[order.shop] = shop.cover?.origin || ''
+          } catch {}
+        }
+      }
+      hasMore.value = newOrders.length === itemsPerPage
+    } else {
+      hasMore.value = false
+    }
+  } catch (e) {
+    message.error('订单获取失败')
+    hasMore.value = false
+  } finally {
+    isLoading.value = false
+  }
+}
+
+watch([currentTab], () => {
+  orders.value = []
+  currentPage.value = 0
+  hasMore.value = true
+  loadMoreOrders()
+})
+
+onMounted(() => {
+  loadMoreOrders()
+})
 
 
 </script>

@@ -68,8 +68,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
-import { useRouter } from "vue-router";
+import { ref, reactive, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { 
   NCard, 
   NForm, 
@@ -85,7 +85,7 @@ import {
   type FormRules 
 } from "naive-ui";
 import { ArrowLeftOutlined, EnvironmentOutlined } from "@vicons/antd";
-import { addAddresses } from "@/api/address";
+import { addAddresses, getAddressDetail, updateAddress } from "@/api/address";
 import type { AddressCreate } from "@/types/address";
 import AddressSelector from "@/views/AddressSelector.vue";
 
@@ -136,22 +136,40 @@ const handleAddressSelect = (province: string, city: string, district: string, a
   showAddressSelector.value = false;
 };
 
+const route = useRoute()
+const addressId = route.params.id as string | undefined
+
+onMounted(async () => {
+  if (addressId) {
+    // 编辑模式，加载地址详情
+    const detail = await getAddressDetail(addressId)
+    Object.assign(formData, detail)
+    // 兼容老数据
+    if (!Array.isArray(formData.coordinate)) formData.coordinate = []
+  }
+})
+
 // 提交表单
 const handleSubmit = () => {
   formRef.value?.validate(async (errors) => {
     if (!errors) {
       loading.value = true;
       try {
-        const addressToSubmit = {
-          ...formData,
-          address: `${formData.address}`
-        };
-        await addAddresses(addressToSubmit);
-        message.success("添加收货地址成功");
+        if (addressId) {
+          await updateAddress(addressId, formData)
+          message.success('修改收货地址成功')
+        } else {
+          const addressToSubmit = {
+            ...formData,
+            address: `${formData.address}`
+          };
+          await addAddresses(addressToSubmit);
+          message.success('添加收货地址成功');
+        }
         router.back();
       } catch (error: any) {
-        console.error("添加地址时出错:", error);
-        const errorMessage = error.response?.data?.message || "添加地址失败，请稍后再试";
+        console.error("保存地址时出错:", error);
+        const errorMessage = error.response?.data?.message || "保存地址失败，请稍后再试";
         message.error(errorMessage);
       } finally {
         loading.value = false;

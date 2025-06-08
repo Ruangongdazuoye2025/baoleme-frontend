@@ -47,9 +47,9 @@ export interface AddressInfo {
 }
 
 /**
- * 店铺推荐的商品信息
+ * 店铺内嵌的推荐商品信息
  */
-export interface RecommendedItem {
+export interface InnerRecommendedItem {
     available: boolean;
     categories: string[];
     cover: ImageUrl;
@@ -88,10 +88,19 @@ export interface RecommendedShop {
     openTimeStart: number;
     owner: string;
     rating: number;
-    recommends: RecommendedItem[];
+    recommends: InnerRecommendedItem[];
     sale: number;
     time: number;
     verified: boolean;
+}
+
+/**
+ * GET /recommended/shops 的排序字段
+ */
+export enum RecommendedShopsSortBy {
+    Comprehensive = "c", // 综合
+    Rating = "r",        // 评分
+    Time = "t",          // 时间
 }
 
 /**
@@ -106,14 +115,14 @@ export interface GetRecommendedShopsRequest {
     q?: string;
     r?: number;
     rc?: number;
-    s?: 'c' | 'r' | 't';
+    s?: RecommendedShopsSortBy;
     t?: number;
 }
 
 /**
  * GET /recommended/items 的响应体
  */
-export interface RecommendedProduct {
+export interface RecommendedItem {
     available: boolean;
     categories: string[];
     cover: ImageUrl;
@@ -130,6 +139,17 @@ export interface RecommendedProduct {
 }
 
 /**
+ * GET /recommended/items 的排序字段
+ */
+export enum RecommendedItemsSortBy {
+    Comprehensive = "c", // 综合
+    Rating = "r",        // 评分
+    Sale = "s",          // 销量
+    Time = "t",          // 时间
+}
+
+
+/**
  * GET /recommended/items 的 Query 参数
  */
 export interface GetRecommendedItemsRequest {
@@ -141,5 +161,5 @@ export interface GetRecommendedItemsRequest {
     pn?: number;
     q?: string;
     r?: number;
-    s?: string;
+    s?: RecommendedItemsSortBy;
 }
