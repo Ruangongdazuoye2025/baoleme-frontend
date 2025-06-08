@@ -1,7 +1,7 @@
 <template>
     <n-card class="mb-4" :title="shopInfo?.name || '未知店铺'" hoverable>
         <template #header-extra>
-            <n-tag type="info">{{ order.status ||  '未知状态'}}</n-tag>
+            <n-tag type="info">{{ getOrderStatusText(order.status)}}</n-tag>
         </template>
         <div class="order-card-info" @click="getOrderItem(order.id)">
             <n-space align="start" :wrap="false" size="large">
@@ -87,6 +87,25 @@ const steps = computed(() => [
         content: order.value.finishedAt ? (new Date(order.value.finishedAt)).toLocaleString() : '',
     },
 ])
+
+const getOrderStatusText = (status: Status) => {
+    switch (status) {
+        case Status.Unpaid:
+            return '未付款'
+        case Status.Preparing:
+            return '准备中'
+        case Status.Prepared:
+            return '准备完成'
+        case Status.Delivering:
+            return '配送中'
+        case Status.Finished:
+            return '已完成'
+        case Status.Canceled:
+            return '已取消'
+        default:
+            return '未知状态'
+    }
+}
 
 const currentStep = computed(() => {
     switch (order.value.status) {

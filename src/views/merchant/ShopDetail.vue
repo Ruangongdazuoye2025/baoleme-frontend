@@ -29,6 +29,9 @@
             <n-tab-pane name="statistics" tab="数据统计">
               <ShopStatistics v-if="shop" :shop-id="shop.id" />
             </n-tab-pane>
+            <n-tab-pane name="comments" tab="用户评价">
+              <ShopCommentList v-if="shop" :shop-id="shop.id" />
+            </n-tab-pane>
             </n-tabs>
         </template>
     </n-page-header>
@@ -148,6 +151,7 @@ import ProductList from './product/ProductList.vue';
 import ShopItemCategoryView from './ShopItemCategoryView.vue';
 import ShopStatistics from './shop/ShopStatistics.vue';
 import ShopOrders from './ShopOrders.vue';
+import ShopCommentList from './shop/ShopCommentList.vue'
 
 // --- 复用 ShopEditForm.vue 中的数据模型定义 ---
 interface 地址 {
@@ -190,7 +194,7 @@ const shopId = computed(() => route.params.shopId as string)
 const shop = ref<店铺资料 | null>(null) // 使用更新后的接口
 const isLoading = ref(true)
 const currentTab = ref('overview')
-const validTabs = ['overview', 'products', 'categories', 'orders', 'statistics']
+const validTabs = ['overview', 'products', 'categories', 'orders', 'statistics', 'comments']
 
 // 初始化时根据 hash 设置 tab
 onMounted(() => {

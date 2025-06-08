@@ -60,9 +60,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { NButton, NIcon, NAvatar, NRate, NInput, useMessage } from 'naive-ui'
 import { ArrowBack, Flower } from '@vicons/ionicons5'
 import axios from 'axios'
-import { createComment, getCommentByOrder } from '@/api/comment'
+import { createComment, getCommentByOrder, updateComment } from '@/api/comment'
 import { getShopInfo } from '@/api/shop'
-import { getOrder } from '@/api/orders'
+import { fetchOrderDetail } from '@/api/orders'
 
 const router = useRouter()
 const route = useRoute()
@@ -73,23 +73,29 @@ const orderId = route.params.id as string
 const shopInfo = ref<any>(null)
 
 const hasComment = ref(false)
+const commentId = ref<string | null>(null)
 
 const message = useMessage()
 
 const getOrderInfo = async () => {
   try {
     // 获取订单信息
-    const response = await getOrder(orderId)
+    const response = await fetchOrderDetail(orderId)
     const shopId = response.shop!
     const shopResponse = await getShopInfo(shopId)
-    // 店铺信息加载后赋值
     shopInfo.value = shopResponse
     // 检查是否已有评价
     try {
-      await getCommentByOrder(orderId)
+      const commentData = await getCommentByOrder(orderId)
       hasComment.value = true
+      commentId.value = commentData.id
+      rating.value = Math.round(commentData.rating / 10)
+      comment.value = commentData.content
     } catch {
       hasComment.value = false
+      commentId.value = null
+      rating.value = 0
+      comment.value = ''
     }
   } catch (error) {
     console.error('获取订单信息失败:', error)
@@ -109,17 +115,21 @@ const submitEvaluation = async () => {
     message.warning('请先评分')
     return
   }
-  if (hasComment.value) {
-    message.warning('该订单已评价，不能重复评价')
-    return
-  }
   try {
-    await createComment({
-      order: orderId,
-      rating: rating.value * 10, // 1-5星转10-50分
-      content: comment.value
-    })
-    message.success('评价提交成功！')
+    if (hasComment.value && commentId.value) {
+      await updateComment(commentId.value, {
+        rating: rating.value * 10,
+        content: comment.value
+      })
+      message.success('评价已更新！')
+    } else {
+      await createComment({
+        order: orderId,
+        rating: rating.value * 10,
+        content: comment.value
+      })
+      message.success('评价提交成功！')
+    }
     router.go(-1)
   } catch (error) {
     message.error('评价提交失败,请稍后重试')
