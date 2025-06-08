@@ -1,13 +1,23 @@
 <template>
   <div class="shop-view-container">
     <div class="header-section">
-      <n-image
-        v-if="shopInfo?.cover.origin"
-        :src="shopInfo.cover.origin"
-        class="shop-banner"
-        object-fit="cover"
-      />
-      <n-page-header :title="shopInfo?.name || '加载中...'" @back="goBack" class="page-header" />
+      <div class="shop-header-bar">
+        <n-button text @click="goBack">
+            <n-icon size="24">
+                <arrow-back />
+            </n-icon>
+        </n-button>
+        <n-image
+          v-if="shopInfo?.cover.origin"
+          :src="shopInfo.cover.origin"
+          class="shop-cover-img"
+          width="60"
+          height="60"
+          object-fit="cover"
+        />
+        <span class="shop-title">{{ shopInfo?.name || '加载中...' }}</span>
+        <n-button type="info" class="comment-btn" @click.stop="showCommentModal = true">查看店铺评价</n-button>
+      </div>
     </div>
     
     <n-layout has-sider class="main-layout">
@@ -69,6 +79,10 @@
     />
 
     <CartView v-model:show="showCartDrawer" />
+
+    <n-modal v-model:show="showCommentModal" preset="card" title="店铺评价" style="max-width: 600px;">
+      <ShopCommentList v-if="shopInfo" :shop-id="shopInfo.id" />
+    </n-modal>
   </div>
 </template>
 
@@ -76,10 +90,11 @@
 import { ref, onMounted, computed, type ComponentPublicInstance } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { NPageHeader, NImage, NLayout, NLayoutSider, NLayoutContent, NMenu, NSpin, NEmpty, useMessage, NBadge, NIcon, NButton } from 'naive-ui';
-import { CartOutline } from '@vicons/ionicons5';
+import { CartOutline, ArrowBack } from '@vicons/ionicons5';
 import ProductListItem from '@/components/product/ProductListItem.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
 import CartView from '@/components/cart/CartView.vue';
+import ShopCommentList from '@/views/merchant/shop/ShopCommentList.vue';
 import { useCartStore } from '@/stores/cart';
 import { getShopInfo } from '@/api/shop';
 import { getShopAllProducts } from '@/api/product';
@@ -110,6 +125,7 @@ const isScrollingProgrammatically = ref(false);
 const showDetailModal = ref(false);
 const selectedProductId = ref<string | null>(null);
 const showCartDrawer = ref(false);
+const showCommentModal = ref(false);
 
 onMounted(async () => {
   isLoading.value = true;
@@ -220,4 +236,32 @@ const goBack = () => {
 .cart-price { margin-left: 16px; flex-grow: 1; }
 .cart-total { font-size: 18px; font-weight: bold; }
 .loading-container { display: flex; justify-content: center; align-items: center; height: 100%; }
+.shop-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 0 12px 0;
+}
+.back-icon {
+  cursor: pointer;
+  vertical-align: middle;
+}
+.shop-cover-img {
+  border-radius: 12px;
+  object-fit: cover;
+  width: 60px;
+  height: 60px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.shop-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-left: 0;
+  flex: none;
+  line-height: 60px;
+  vertical-align: middle;
+}
+.comment-btn {
+  margin-left: auto;
+}
 </style>
