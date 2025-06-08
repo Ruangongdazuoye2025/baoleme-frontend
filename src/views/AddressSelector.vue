@@ -50,9 +50,10 @@ onMounted(async () => {
     const geolocation = useGeolocation()
     try {
         const location = await geolocation.getCurrentLocation()
-        map.setCenter(AMap.LngLat(location.longitude, location.latitude))
-        marker.setPosition(AMap.LngLat(location.longitude, location.latitude))
+        map.setCenter([location.longitude, location.latitude])
+        marker.setPosition([location.longitude, location.latitude])
     } catch (error) {
+        console.error(error)
         message.error("获取当前位置失败，请手动选择地址")
     }
     await updatePlaces()
