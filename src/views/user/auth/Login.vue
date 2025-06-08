@@ -380,7 +380,12 @@ const handleLogin = () => {
 
         message.success('登录成功！');
         
-        router.push('/customer/home');
+        router.push(
+          tokenStore.role === 'customer' ? '/customer/home' :
+          tokenStore.role === 'merchant' ? '/merchant/shops' :
+          tokenStore.role === 'rider' ? '/rider/recommend' :
+          '/admin'
+        )
 
       } catch (error: any) {
         if (error.response) {
