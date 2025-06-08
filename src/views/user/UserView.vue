@@ -177,6 +177,7 @@ const handleAvatarClicked = () => {
           @finish="
             (profile: UserProfile) => {
               if (!userData) return
+              tokenStore.setRole(profile.role)
               userData.name = profile.name
               userData.description = profile.description
               userData.role = profile.role

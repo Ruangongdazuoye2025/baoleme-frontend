@@ -23,9 +23,10 @@ import { useTokenStore } from '@/stores/token';
 
 const router = useRouter();
 const route = useRoute();
+const tokenStore = useTokenStore();
 
-const navItems = ref([
-  {
+const navItems = computed(() => {
+  let home =  {
     label: '首页',
     icon: HomeFilled,
     path: [
@@ -33,8 +34,8 @@ const navItems = ref([
       '/merchant/shops',
       '/rider/recommend'
     ]
-  },
-  {
+  };
+  let order = {
     label: '订单',
     icon: FileTextOutlined,
     path: [
@@ -42,28 +43,36 @@ const navItems = ref([
       '/merchant/order',
       '/rider/recommend'
     ]
-  },
-  {
+  }
+  let myPage = {
     label: '我的',
     icon: UserOutlined,
     path: [
-      `/user/${useTokenStore().userId}`,
-      `/user/${useTokenStore().userId}`,
-      `/user/${useTokenStore().userId}`
+      `/user/${tokenStore.userId}`,
+      `/user/${tokenStore.userId}`,
+      `/user/${tokenStore.userId}`
     ]
   }
-]);
+  if (tokenStore.role === 'merchant') {
+    return [home, myPage]
+  } else {
+    return [home, order, myPage]
+  }
+});
 
 const isActive = (path: string[]) => {
   // 简单匹配或者更复杂的前缀匹配
   const offset = ref(0)
-  switch (useTokenStore().role) {
+  switch (tokenStore.role) {
     case 'customer':
       offset.value = 0;
+      break
     case 'merchant':
       offset.value = 1;
+      break
     case 'rider':
       offset.value = 2;
+      break
     default:
   }
   return route.path === path[offset.value] || route.path.startsWith(path[offset.value]);
@@ -71,13 +80,16 @@ const isActive = (path: string[]) => {
 
 const navigate = (path: string[]) => {
   const offset = ref(1)
-  switch (useTokenStore().role) {
+  switch (tokenStore.role) {
     case 'customer':
       offset.value = 0;
+      break
     case 'merchant':
       offset.value = 1;
+      break
     case 'rider':
       offset.value = 2;
+      break
     default:
   }
   if (route.path !== path[offset.value]) {

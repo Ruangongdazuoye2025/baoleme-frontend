@@ -120,6 +120,8 @@
   } from '@vicons/ionicons5'
   import InfiniteScrollList from '@/components/common/InfiniteScrollList.vue'
   import { useRouter } from 'vue-router' // 如果需要跳转
+import { getUserShops } from '@/api/shop'
+import { useTokenStore } from '@/stores/token'
   
   // 模拟店铺数据类型
   interface Shop {
@@ -142,49 +144,24 @@
   const dialog = useDialog() // Naive UI 对话框服务
   const message = useMessage() // Naive UI 消息服务
   const router = useRouter() // Vue Router实例
-  
-  // 模拟 API 请求获取店铺数据，后续可删
-  const fetchMockShops = (page: number, limit: number): Promise<Shop[]> => {
-    return new Promise((resolve) => {
-      console.log(`模拟请求第 ${page} 页店铺数据，每页 ${limit} 条`)
-      setTimeout(() => {
-        const newShops: Shop[] = []
-        // 模拟总共有12条数据，分3页加载
-        const totalMockItems = 12
-        const startIndex = (page - 1) * limit
-  
-        if (startIndex >= totalMockItems) {
-          resolve([]) // 没有更多数据
-          return
-        }
-  
-        for (let i = 0; i < limit; i++) {
-          const currentIndex = startIndex + i
-          if (currentIndex >= totalMockItems) break // 超出模拟数据总量
-  
-          const shopId = `shop-${currentIndex + 1}`
-          newShops.push({
-            id: shopId,
-            name: `我的美味店铺 ${currentIndex + 1}`,
-            address: `学院路 ${currentIndex + 1} 号`,
-            rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10, // 3.5 - 5.0
-            description: `这是店铺 ${currentIndex + 1}，我们这里好恰的很`,
-            avatar: `https://picsum.photos/seed/${shopId}/100/100` // 使用 picsum.photos 生成随机头像
-          })
-        }
-        resolve(newShops)
-      }, 800) // 模拟网络延迟
-    })
-  }
+  const tokenStore = useTokenStore()
   
   const loadMoreShops = async () => {
     if (isLoading.value || !hasMore.value) return
     isLoading.value = true
     try {
-      const newItems = await fetchMockShops(currentPage.value, itemsPerPage)
+      const newItems = await getUserShops(tokenStore.userId!)
       if (newItems.length > 0) {
-        shops.value.push(...newItems)
+        shops.value.push(...newItems.map(shop => ({
+          id: shop.id,
+          name: shop.name,
+          address: shop.address.address,
+          rating: shop.rating,
+          description: shop.description,
+          avatar: shop.cover.thumbnail
+        })))
         currentPage.value++
+        hasMore.value = false
       } else {
         hasMore.value = false
       }
@@ -202,7 +179,6 @@
   }
   
   const handleAddShop = () => {
-    message.info('功能开发中：增加商铺')
     console.log('触发增加商铺操作')
     router.push('/merchant/shops/create');
   }

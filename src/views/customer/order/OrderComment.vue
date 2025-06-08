@@ -23,7 +23,7 @@
       <h3>您对商家/菜品满意吗？</h3>
 
       <!-- 店铺信息 -->
-      <div class="shop-info">
+      <div class="shop-info" v-if="shopInfo">
         <n-avatar
           round
           :size="60"
@@ -57,9 +57,11 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { NButton, NIcon, NAvatar, NRate, NInput } from 'naive-ui'
+import { NButton, NIcon, NAvatar, NRate, NInput, useMessage } from 'naive-ui'
 import { ArrowBack, Flower } from '@vicons/ionicons5'
 import axios from 'axios'
+import { createComment, getCommentByOrder } from '@/api/comment'
+import { getShopInfo } from '@/api/shop'
 
 const router = useRouter()
 const route = useRoute()
@@ -67,53 +69,27 @@ const rating = ref(0)
 const comment = ref('')
 const orderId = route.params.id as string
 
+const shopInfo = ref<any>(null)
 
-const shopInfo = ref({
-  name: '未知店铺',
-  id: '',
-  owner: '',
-  createdAt: '',
-  description: '',
-  categories: [] as string[],
-  address: {
-    coordinate: [],
-    province: '',
-    city: '',
-    district: '',
-    address: '',
-    name: '',
-    tel: ''
-  } ,
-  verified: false,
-  opened: false,
-  openTimeStart: 0,
-  openTimeEnd: 0,
-  cover: {
-    origin: '',
-    thumbnail: '',
-  } ,
-  detailImage: {
-    origin: '',
-    thumbnail: '',
-  } ,
-  license: {
-    origin: '',
-    thumbnail: '',
-  } ,
-  deliveryThreshold: 0,
-  deliveryPrice: 0,
-  maximumDistance: 0,
-  rating: 0,
-  sale: 0,
-  averagePrice: 0,
-})
+const hasComment = ref(false)
+
+const message = useMessage()
 
 const getOrderInfo = async () => {
   try {
+    // 获取订单信息
     const response = await axios.get(`/orders/${orderId}`)
-    const shopId = response.data.shopId
-    const shopResponse = await axios.get(`/shops/${shopId}`)
-    shopInfo.value = shopResponse.data
+    const shopId = response.data.shop
+    const shopResponse = await getShopInfo(shopId)
+    // 店铺信息加载后赋值
+    shopInfo.value = shopResponse
+    // 检查是否已有评价
+    try {
+      await getCommentByOrder(orderId)
+      hasComment.value = true
+    } catch {
+      hasComment.value = false
+    }
   } catch (error) {
     console.error('获取订单信息失败:', error)
   }
@@ -129,23 +105,23 @@ const goBack = () => {
 
 const submitEvaluation = async () => {
   if (rating.value === 0) {
-    window.alert('请先评分')
+    message.warning('请先评分')
     return
   }
-  
+  if (hasComment.value) {
+    message.warning('该订单已评价，不能重复评价')
+    return
+  }
   try {
-    const response = await axios.post('/comments', {
+    await createComment({
       order: orderId,
-      rating: rating.value * 10, // 转换为10-50的评分
+      rating: rating.value * 10, // 1-5星转10-50分
       content: comment.value
     })
-    
-    console.log('评价提交成功:', response.data)
-    window.alert('评价提交成功！')
+    message.success('评价提交成功！')
     router.go(-1)
   } catch (error) {
-    console.error('评价提交失败:', error)
-    window.alert('评价提交失败,请稍后重试')
+    message.error('评价提交失败,请稍后重试')
   }
 }
 </script>

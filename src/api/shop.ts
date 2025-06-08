@@ -62,8 +62,8 @@ export const getGlobalShopList = async (params?: {
  * @param data 店铺资料
  * @returns Promise<ShopProfile>
  */
-export const createShop = async (data: Omit<ShopProfile, 'verified'>): Promise<ShopProfile> => {
-  const res = await axios.post<ShopProfile>(`${apiRoot}/shops`, data, {
+export const createShop = async (data: Omit<ShopProfile, 'verified'>): Promise<ShopInfo> => {
+  const res = await axios.post<ShopInfo>(`${apiRoot}/shops`, data, {
     headers: { Authorization: `Bearer ${getToken()}` }
   })
   return res.data
@@ -75,8 +75,8 @@ export const createShop = async (data: Omit<ShopProfile, 'verified'>): Promise<S
  * @param id 用户ID
  * @returns Promise<ShopProfile[]>
  */
-export const getUserShops = async (id: string): Promise<ShopProfile[]> => {
-  const res = await axios.get<ShopProfile[]>(`${apiRoot}/user/${id}/shops`, {
+export const getUserShops = async (id: string): Promise<ShopInfo[]> => {
+  const res = await axios.get<ShopInfo[]>(`${apiRoot}/user/${id}/shops`, {
     headers: { Authorization: `Bearer ${getToken()}` }
   })
   return res.data
@@ -103,7 +103,7 @@ export const deleteShop = async (id: string) => {
  */
 export const updateShopProfile = async (
   id: string,
-  data: Partial<Omit<ShopProfile, 'verified'>>
+  data: Partial<ShopProfile>
 ): Promise<ShopProfile> => {
   const res = await axios.patch<ShopProfile>(`${apiRoot}/shops/${id}/profile`, data, {
     headers: { Authorization: `Bearer ${getToken()}` }
@@ -310,3 +310,15 @@ export const deleteItemCategory = async (shopId: string, categoryId: string): Pr
     headers: { Authorization: `Bearer ${getToken()}` }
   })
 }
+
+/**
+ * GET /shop-categories
+ * 获取店铺分类列表。
+ * @returns Promise<{id: string, name: string}[]>
+ */
+export const getShopCategories = async (): Promise<Array<{ id: string; name: string }>> => {
+  const res = await axios.get(`${apiRoot}/shop-categories`, {
+    headers: { Authorization: `Bearer ${getToken()}` }
+  });
+  return res.data;
+};

@@ -21,6 +21,11 @@ export const useTokenStore = defineStore('token', () => {
             role.value = null
         }
     }
+
+    async function setRole(newRole: UserRole) {
+        role.value = newRole
+        admin.value = newRole === 'admin'
+    }
     
     function clearToken() {
         token.value = null
@@ -29,7 +34,7 @@ export const useTokenStore = defineStore('token', () => {
         role.value = null
     }
     
-    return { token, userId, admin, role, setToken, clearToken }
+    return { token, userId, admin, role, setToken, clearToken, setRole }
 }, {
     persist: {
         storage: localStorage,

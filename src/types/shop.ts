@@ -105,7 +105,15 @@ export interface ShopProfile {
   name: string
   description: string
   categories: string[]
-  address: Address
+  address: {
+    coordinate: number[];
+    province: string;
+    city: string;
+    district: string;
+    address: string;
+    name: string;
+    tel: string;
+  }
   verified: boolean
   opened: boolean
   openTimeStart: number

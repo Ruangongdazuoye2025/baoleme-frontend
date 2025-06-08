@@ -15,37 +15,41 @@
         >
         <template #item="{ item }">
             <n-card class="product-card" hoverable>
-            <template #cover v-if="item.cover?.origin">
-                <n-image
-                width="100"
-                height="100"
-                :src="item.cover.thumbnail || item.cover.origin"
-                :alt="item.name"
-                object-fit="cover"
-                style="margin: 0 auto; display: block;"
-                />
-            </template>
-            <n-h3 style="margin-top: 8px;">{{ item.name }}</n-h3>
-            <n-p>价格: ¥{{ (item.price / 100).toFixed(2) }}</n-p>
-            <n-p>销量: {{ item.sale }} | 评分: {{ (item.rating / 10).toFixed(1) }}</n-p>
-            <n-space align="center" style="margin-bottom: 10px;">
-                <span>上架:</span>
-                <n-switch
-                :value="item.available"
-                @update:value="(value) => handleAvailabilityChange(item, value)"
-                :loading="item.updatingStatus"
-                />
-            </n-space>
-            <n-p :type="item.stockout ? 'error' : 'success'">
-                {{ item.stockout ? '缺货' : '有货' }}
-            </n-p>
-            <template #action>
-                <n-space justify="end">
-                <n-button size="small" type="info" ghost @click="goToDetail(item.id)">详情</n-button>
-                <n-button size="small" type="primary" ghost @click="goToEdit(item.id)">编辑</n-button>
-                <n-button size="small" type="error" ghost @click="handleDelete(item.id)">删除</n-button>
-                </n-space>
-            </template>
+                <div style="display: flex; align-items: flex-start;">
+                    <div style="flex: none; margin-right: 16px;">
+                        <n-image
+                            v-if="item.cover?.origin"
+                            width="100"
+                            height="100"
+                            :src="item.cover.thumbnail || item.cover.origin"
+                            :alt="item.name"
+                            object-fit="cover"
+                            style="display: block; border-radius: 8px; background: #f5f5f5;"
+                        />
+                        <div v-else style="width: 100px; height: 100px; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 12px;">无封面</div>
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <n-h3 style="margin-top: 0; margin-bottom: 8px;">{{ item.name }}</n-h3>
+                        <n-p>价格: ¥{{ (item.price / 100).toFixed(2) }}</n-p>
+                        <n-p>销量: {{ item.sale }} | 评分: {{ (item.rating / 10).toFixed(1) }}</n-p>
+                        <n-space align="center" style="margin-bottom: 10px;">
+                            <span>上架:</span>
+                            <n-switch
+                                :value="item.available"
+                                @update:value="(value) => handleAvailabilityChange(item, value)"
+                                :loading="item.updatingStatus"
+                            />
+                        </n-space>
+                        <n-p :type="item.stockout ? 'error' : 'success'">
+                            {{ item.stockout ? '缺货' : '有货' }}
+                        </n-p>
+                        <n-space justify="end">
+                            <n-button size="small" type="info" ghost @click="goToDetail(item.id)">详情</n-button>
+                            <n-button size="small" type="primary" ghost @click="goToEdit(item.id)">编辑</n-button>
+                            <n-button size="small" type="error" ghost @click="handleDelete(item.id)">删除</n-button>
+                        </n-space>
+                    </div>
+                </div>
             </n-card>
         </template>
 
@@ -88,7 +92,7 @@ const shopId = ref<string | null>(null);
 const productList = ref<ProductDataWithStatus[]>([]);
 const loading = ref(false); // 控制初次加载和后续加载更多的整体状态
 const hasMoreProducts = ref(true);
-const currentPage = ref(1);
+const currentPage = ref(0);
 const pageSize = 10; // 每次加载的数量
 
 shopId.value = route.params.shopId as string;
@@ -113,6 +117,7 @@ const loadMoreProducts = async () => {
     } catch (error) {
     console.error('加载更多商品失败:', error);
     message.error('加载更多商品失败');
+    hasMoreProducts.value = false
     // 可以考虑在失败时也设置 hasMoreProducts.value = false，避免无限重试
     // 或者提供一个重试按钮
     } finally {
@@ -124,7 +129,7 @@ onMounted(() => {
     if (shopId.value) {
     // 初始化加载第一页数据
     productList.value = []; // 清空列表，确保从第一页开始
-    currentPage.value = 1;
+    currentPage.value = 0;
     hasMoreProducts.value = true;
     // loadMoreProducts(); // InfiniteScrollList 首次挂载且哨兵可见时会自动调用 loadMore
     } else {

@@ -22,6 +22,7 @@ const longitude = defineModel<number>('longitude', { default: 116.397428 })
 const message = useMessage()
 
 let AMap: any
+let marker: any
 
 onMounted(async () => {
     AMap = await AMapLoader.load({
@@ -34,11 +35,16 @@ onMounted(async () => {
         zoom: 11,
         center: [longitude.value, latitude.value],
     })
+    const marker = new AMap.Marker({
+        position: map.getCenter(),
+    });
+    map.add(marker);
     dummyMap = new AMap.Map("dummy-comtainer")
     map.on('moveend', () => {
         const center = map.getCenter()
         latitude.value = center.lat
         longitude.value = center.lng
+        marker.setPosition(center)
         updatePlaces()
     })
     await updatePlaces()

@@ -99,11 +99,8 @@ const routes: Array<RouteRecordRaw> = [
     path: '/order/getsubmit',
     name: 'GetOrderSubmit',
     component: () => import('@/views/customer/order/GetOrder.vue')
-  }, {
-    path: '/rider/order/:id',
-    name: 'OrderForRider',
-    component: () => import('@/views/customer/order/OrderInfoForRider.vue')
-  }, {
+  },
+  {
     path: '/merchant/shops/create', // 新增：创建店铺的路由
     name: 'MerchantShopCreate',
     component: () => import('@/views/merchant/ShopCreateForm.vue'),

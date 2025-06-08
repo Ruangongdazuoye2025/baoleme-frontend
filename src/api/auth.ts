@@ -9,8 +9,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
     token: string;
-    userId: string;
-    role: string;
+    id: string;
 }
 
 export interface RegisterRequest {

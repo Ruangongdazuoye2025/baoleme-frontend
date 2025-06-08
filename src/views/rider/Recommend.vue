@@ -3,12 +3,10 @@
     <n-tabs v-model:value="activeTab" type="line" animated>
       <n-tab-pane name="new" tab="新任务">
         <div class="filter-sort-container">
-          <n-select v-model:value="sortField" :options="sortOptions" @update:value="setSortField" />
           <n-input-number v-model:value="maxDistance" placeholder="最大配送距离(km)" />
           <n-input-number v-model:value="maxTime" placeholder="最长配送时间(分钟)" />
           <n-input-number v-model:value="minIncome" placeholder="最低预计收入" />
-          <n-input-number v-model:value="riderLat" placeholder="骑手位置纬度" />
-          <n-input-number v-model:value="riderLon" placeholder="骑手位置经度" />
+          <n-button primary @click="getLocation">获取定位{{ typeof(riderLat) === 'number' ? ` (${riderLon.toFixed(3)}, ${riderLat.toFixed(3) })` : ''  }}</n-button>
           <n-button @click="applyFilters">应用筛选</n-button>
         </div>
         <n-spin :show="loading">
@@ -197,6 +195,9 @@ import { useMessage } from 'naive-ui'
 import { ChevronDown, MapOutline, CallOutline } from '@vicons/ionicons5'
 import axios from 'axios'
 import DeliveryMap from '../DeliveryMap.vue'
+import { apiRoot } from '@/config/api'
+import { useGeolocation } from '@/composables/useGeolocation'
+import { useTokenStore } from '@/stores/token'
 
 // 状态变量
 const activeTab = ref('new')
@@ -211,26 +212,21 @@ const expandedItems = ref({})
 const expandedNotes = ref({})
 
 // 分页相关
-const currentPage = ref(1)
+const currentPage = ref(0)
 const pageSize = 10
 const hasMore = ref(true)
 
-const sortField = ref('deliveryFee')
-const maxDistance = ref(null)
-const maxTime = ref(null)
-const minIncome = ref(null)
-const riderLat = ref(null)
-const riderLon = ref(null)
-const sortOptions = [
-  { label: '配送费', value: 'deliveryFee' },
-  { label: '距离', value: 'distance' },
-  { label: '时间', value: 'time' },
-  { label: '总金额', value: 'total' }
-]
+const maxDistance = ref(undefined)
+const maxTime = ref(undefined)
+const minIncome = ref(undefined)
+const riderLat = ref(undefined)
+const riderLon = ref(undefined)
 
 // 计算属性
 const newOrders = computed(() => orders.value.filter(order => order.status === 'prepared'))
 const deliveringOrders = computed(() => orders.value.filter(order => order.status === 'delivering'))
+
+const tokenStore = useTokenStore()
 
 // 获取订单列表
 const fetchOrders = async (isLoadMore = false) => {
@@ -238,14 +234,16 @@ const fetchOrders = async (isLoadMore = false) => {
 
   try {
     loading.value = true
-    const response = await axios.get('/recommended/orders', {
+    const response = await axios.get(`${apiRoot}/recommended/orders`, {
+      headers: {
+        'Authorization': `Bearer ${tokenStore.token}`,
+      },
       params: {
         p: currentPage.value,
         pn: pageSize,
-        s: sortField.value,
         d: maxDistance.value,
         t: maxTime.value,
-        m: minIncome.value,
+        m: minIncome.value ? minIncome.value / 100 : undefined,
         lat: riderLat.value,
         lon: riderLon.value
       }
@@ -281,15 +279,17 @@ const fetchOrders = async (isLoadMore = false) => {
   }
 }
 
-// 新增排序方法
-const setSortField = (field) => {
-  sortField.value = field
-  resetAndFetch()
-}
-
 // 新增筛选方法
 const applyFilters = () => {
   resetAndFetch()
+}
+
+const geolocation = useGeolocation()
+
+const getLocation = async () => {
+  const location = await geolocation.getCurrentLocation()
+  riderLon.value = location.longitude
+  riderLat.value = location.latitude
 }
 
 // 重置分页并重新获取数据

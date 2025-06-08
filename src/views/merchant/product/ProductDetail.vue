@@ -16,11 +16,10 @@
       <n-descriptions-item label="分类">
         <n-space>
           <n-tag v-for="catId in productData.categories" :key="catId" type="info" size="small">
-            {{ catId }} </n-tag>
+            {{ categoryMap[catId] || catId }}
+          </n-tag>
         </n-space>
-        <n-text depth="3" style="font-size: 12px; display: block; margin-top: 4px;">
-          （实际应根据分类ID获取并显示分类名称）
-        </n-text>
+
       </n-descriptions-item>
       <n-descriptions-item label="销量">{{ productData.sale }}</n-descriptions-item>
       <n-descriptions-item label="评分">{{ (productData.rating / 10).toFixed(1) }} / 5.0</n-descriptions-item>
@@ -67,7 +66,9 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { NCard, NDescriptions, NDescriptionsItem, NImage, NTag, NSpin, NButton, useMessage, NSpace, NEmpty, NText } from 'naive-ui';
 import { getProductDetail } from '@/api/product';
+import { getShopItemCategories } from '@/api/category';
 import type { ProductData } from '@/types/product';
+import type { ItemCategory } from '@/types/category';
 
 const route = useRoute();
 const router = useRouter();
@@ -76,8 +77,19 @@ const message = useMessage();
 const productId = ref<string | null>(null);
 const productData = ref<ProductData | null>(null);
 const loading = ref(false);
+const categoryMap = ref<Record<string, string>>({});
 
 productId.value = route.params.productId as string;
+
+const fetchCategoriesForShop = async (shopId: string) => {
+  try {
+    const categories: ItemCategory[] = await getShopItemCategories(shopId);
+    categoryMap.value = Object.fromEntries(categories.map(c => [c.id, c.name]));
+  } catch (err) {
+    message.error('获取商品分类失败');
+    categoryMap.value = {};
+  }
+};
 
 const fetchDetails = async () => {
   if (!productId.value) {
@@ -88,6 +100,9 @@ const fetchDetails = async () => {
   try {
     const data = await getProductDetail(productId.value);
     productData.value = data;
+    if (data.shopId) {
+      await fetchCategoriesForShop(data.shopId);
+    }
   } catch (error) {
     console.error('获取商品详情失败:', error);
     message.error('获取商品详情失败');

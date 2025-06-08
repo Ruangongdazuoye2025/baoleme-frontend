@@ -12,21 +12,14 @@
           <n-tab-pane name="cancelled" tab="已取消" />
         </n-tabs>
       </div>
-      <!-- 搜索框 -->
-      <div class="search-input" @click="router.push('/search')">
-        <n-icon size="16"><search-outlined /></n-icon>
-        <span>搜索订单</span>
-      </div>
+      <!-- 搜索框已移除 -->
     </div>
 
     <div class="order-list mt-4">
       <!-- 订单卡片 -->
       <n-space vertical :size="12" class="mt-4">
-        <OrderCard v-for="order in filteredOrders" :key="order.id" :order="order" />
+        <OrderCard v-for="order in filteredOrders" :key="order.id" :order="order" :cover="shopCoverMap[order.shop || '']" />
       </n-space>
-      <infinite-scroll-list :items="orders" :load-more="loadMoreOrders" :is-loading="isLoading" :has-more="hasMore"
-        item-key="id" class="order-scroll-list">
-      </infinite-scroll-list>
       <n-skeleton height="40px"  :sharp="false" />
 
     </div>
@@ -51,15 +44,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NTabs, NTabPane, NSpace, useMessage, NBackTop } from 'naive-ui'
 import OrderCard from '@/components/card/OrderCard.vue'
 import { SearchOutlined } from '@vicons/antd'
 import { Status, type Order } from '@/types/order' // 导入数据类型
-import { fetchCustomerOrderList, fetchShopOrderList, fetchRiderOrderList } from '@/api/orders'
+import { fetchCustomerOrderList, fetchRiderOrderList } from '@/api/orders'
+import { getShopInfo } from '@/api/shop'
 import { useTokenStore } from '@/stores/token'
-import InfiniteScrollList from '@/components/common/InfiniteScrollList.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,167 +64,78 @@ const currentPage = ref(1)
 const itemsPerPage = 5
 
 const total = ref(0)
-const page = ref(2)
+const page = ref(0)
 const pageSize = 5
-const status = ref<Status | null>(null)
+const pageCount = ref(1)
+const statusMap: Record<string, Status | undefined> = {
+  all: undefined,
+  unpaid: Status.Unpaid,
+  preparing: Status.Preparing,
+  prepared: Status.Prepared,
+  delivering: Status.Delivering,
+  finished: Status.Finished,
+  canceled: Status.Canceled,
+}
+
+const currentTab = ref('all')
+const orders = ref<Order[]>([])
+const shopCoverMap = ref<Record<string, string>>({}) // 订单id->店铺封面
+
+const tokenStore = useTokenStore()
+const userRole = computed(() => tokenStore.role)
 
 const message = useMessage()
 
 const isTimeOut = ref(false)
-// const orders =  ref<OrderList[]>([])
 
-// const loadData = async () => {
-//   try {
-//     // TODO 这几个api其实完全一样
-//     switch (useTokenStore().role) {
-//       case "customer":
-//         orders.value = await fetchCustomerOrderList(page.value, pageSize, status.value as string)
-//         break;
-//       case "merchant":
-//         orders.value = await fetchShopOrderList(page.value, pageSize, status.value as string, useTokenStore().userId as string)
-//         break;
-//       // case "admin":
-//       //   orders.value = await fetchOrders(page.value, pageSize, status.value as string)
-//       case "rider":
-//         orders.value = await fetchRiderOrderList(page.value, pageSize, status.value as string)
-//       default:
-//         break;
-//     }
-//     console.log("switch pass!")
-//   } catch (error) {
-//     alert("获取订单失败");
-//     console.error('Failed to load orders:', error)
-//   }
-// }
-
-// onMounted(() => {
-//   loadData();
-//   setTimeout(() => {
-//     if (orders.value.length === 0) {
-//       isTimeOut.value = true
-//     }
-//   }, 5000)
-// })
-// TODO :模拟订单数据
-
-const orders = ref<Order[]>([])
-
-// 模拟 API 请求获取店铺数据，后续可删
-const fetchMockOrders = (page: number, limit: number): Promise<Order[]> => {
-  return new Promise((resolve) => {
-    console.log(`模拟请求第 ${page} 页店铺数据，每页 ${limit} 条`)
-    setTimeout(() => {
-      const newOrders: Order[] = []
-      const totalMockItems = 12
-      const startIndex = (page - 1) * limit
-
-      if (startIndex >= totalMockItems) {
-        resolve([])
+async function fetchOrders() {
+  isLoading.value = true
+  let result: Order[] = []
+  let total = 0
+  try {
+    const status = statusMap[currentTab.value]
+    // fetchCustomerOrderList和fetchRiderOrderList需要string类型status
+    if (userRole.value === 'customer') {
+      result = await fetchCustomerOrderList(page.value, pageSize, status)
+    } else if (userRole.value === 'rider') {
+      // 只允许配送中和已完成
+      if (currentTab.value !== 'delivering' && currentTab.value !== 'finished') {
+        orders.value = []
+        isLoading.value = false
         return
       }
-
-      for (let i = 0; i < limit; i++) {
-        const currentIndex = startIndex + i
-        if (currentIndex >= totalMockItems) break
-        let nowStatus =  currentIndex % 2 === 0 ? Status.Finished : Status.Delivering
-
-        const orderId = `order-${currentIndex + 1}`
-        newOrders.push({
-          id: "497f6eca-6276-4993-bfeb-53cbbbba6f08",
-          status: nowStatus,
-          createdAt: new Date("2019-08-24T14:15:22.123Z"),
-          paidAt: new Date("2019-08-24T14:15:22.123Z"),
-          preparedAt: new Date("2019-08-24T14:15:22.123Z"),
-          deliveredAt: new Date("2019-08-24T14:15:22.123Z"),
-          finishedAt: new Date("2019-08-24T14:15:22.123Z"),
-          canceledAt: new Date("2019-08-24T14:15:22.123Z"),
-          customer: "0ac6320b-fa4d-4235-8d23-413a2b863bad",
-          shop: "06d34de1-b0bd-4e60-bd25-222980128ed1",
-          rider: "a197bfad-7b25-473e-bd10-519eeb8049dd",
-          items: [
-            {
-              id: "497f6eca-6276-4993-bfeb-53cbbbba6f08",
-              name: "string0",
-              cover: {
-                origin: "string",
-                thumbnail: "string"
-              },
-              quantity: 0,
-              price: 0,
-            },
-            {
-              id: "497f6eca-6276-4993-bfeb-53cbbbba6f08",
-              name: "string1",
-              cover: {
-                origin: "string",
-                thumbnail: "string"
-              },
-              quantity: 0,
-              price: 0,
-            },
-          ],
-          deliveryFee: 0,
-          total: 32,
-          note: "string",
-          delivery: {
-            latitude: 0,
-            longitude: 0
-          },
-          shopAddress: {
-            id: '1',
-            isDefault: true,
-            coordinate: [
-              0
-            ],
-            province: "北京",
-            city: "北京",
-            district: "海淀区",
-            address: "学院路37号北京航空航天大学学生1公寓邮局旁外卖柜",
-            name: "string",
-            tel: "string"
-          },
-          customerAddress: {
-            id: '2',
-            isDefault: false,
-            coordinate: [
-              0
-            ],
-            province: "北京",
-            city: "北京",
-            district: "海淀区",
-            address: "学院路37号北京航空航天大学学生1公寓邮局旁外卖柜",
-            name: "string",
-            tel: "string"
-          }
-        })
-      }
-      resolve(newOrders)
-    }, 800)
-  })
-}
-
-const loadMoreOrders = async () => {
-  if (isLoading.value || !hasMore.value) return
-  isLoading.value = true
-  try {
-    const newItems = await fetchMockOrders(currentPage.value, itemsPerPage)
-    if (newItems.length > 0) {
-      orders.value.push(...newItems)
-      currentPage.value++
-      console.log(orders)
-      console.log(currentPage.value)
-      console.log("zheshi1 shuju")
+      result = await fetchRiderOrderList(page.value, pageSize, status)
     } else {
-      hasMore.value = false
+      message.error('商家不支持订单列表')
+      orders.value = []
+      isLoading.value = false
+      return
     }
-  } catch (error) {
-    console.error('加载店铺失败:', error)
-    message.error('加载店铺列表失败，请稍后重试')
+    orders.value = result
+    // 级联查店铺封面
+    for (const order of result) {
+      if (order.shop && !shopCoverMap.value[order.shop]) {
+        try {
+          const shop = await getShopInfo(order.shop)
+          shopCoverMap.value[order.shop] = shop.cover?.origin || ''
+        } catch {}
+      }
+    }
+    // TODO: 如果API返回total, 设置pageCount
+    pageCount.value = result.length < pageSize ? page.value + 1 : page.value + 2
+  } catch (e) {
+    message.error('订单获取失败')
+    orders.value = []
   } finally {
     isLoading.value = false
   }
 }
-const currentTab = ref('all')
+
+watch([currentTab, page], fetchOrders, { immediate: true })
+
+onMounted(() => {
+  fetchOrders()
+})
 
 const filteredOrders = computed(() => {
   if (currentTab.value === 'all') {
@@ -268,10 +172,6 @@ const filteredOrders = computed(() => {
 // 数据 pageOrders
 // 当前页数 page
 // const pageSize = 5
-
-const pageCount = computed(() => {
-  Math.ceil(orders.value.length / pageSize)
-})
 
 const currentPageOrders = computed(() => {
   const start = (page.value - 1) * pageSize

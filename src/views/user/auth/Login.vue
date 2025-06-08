@@ -367,7 +367,7 @@ const handleLogin = () => {
         };
         const response = await loginUser(loginData);
 
-        await tokenStore.setToken(response.token, response.userId); 
+        await tokenStore.setToken(response.token, response.id); 
 
         message.success('登录成功！');
         

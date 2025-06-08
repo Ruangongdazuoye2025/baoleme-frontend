@@ -18,10 +18,16 @@
             <n-tab-pane name="overview" tab="店铺概览">
             </n-tab-pane>
             <n-tab-pane name="products" tab="商品管理">
-            <n-text>商品管理功能开发中...</n-text>
+            <ProductList :shop-id="shop?.id" v-if="shop" />
+            </n-tab-pane>
+            <n-tab-pane name="categories" tab="分类管理">
+            <ShopItemCategoryView v-if="shop" :key="shop.id" />
             </n-tab-pane>
             <n-tab-pane name="orders" tab="订单处理">
-            <n-text>订单处理功能开发中...</n-text>
+              <ShopOrders v-if="shop" :shop-id="shop.id" />
+            </n-tab-pane>
+            <n-tab-pane name="statistics" tab="数据统计">
+              <ShopStatistics v-if="shop" :shop-id="shop.id" />
             </n-tab-pane>
             </n-tabs>
         </template>
@@ -56,7 +62,7 @@
                 </n-descriptions-item>
                 <n-descriptions-item label="营业时间 (每日)">
                     <span v-if="shop.openTimeStart !== null && shop.openTimeEnd !== null">
-                    {{ minutesToHHMM(shop.openTimeStart) }} - {{ minutesToHHMM(shop.openTimeEnd) }}
+                    {{ utcMinutesToHHMM(shop.openTimeStart) }} - {{ utcMinutesToHHMM(shop.openTimeEnd) }}
                     </span>
                     <span v-else>未设置</span>
                 </n-descriptions-item>
@@ -73,10 +79,10 @@
             <n-card title="配送与费用" class="detail-card" :segmented="{ content: true }">
                 <n-descriptions label-placement="left" bordered :column="1" size="small">
                 <n-descriptions-item label="配送费用">
-                    {{ formatPrice(shop.deliveryPrice) }}
+                    {{ shop.deliveryPrice !== null ? `¥${shop.deliveryPrice.toFixed(2)}` : '未设置' }}
                 </n-descriptions-item>
                 <n-descriptions-item label="起送价格">
-                    {{ formatPrice(shop.deliveryThreshold) }}
+                    {{ shop.deliveryThreshold !== null ? `¥${shop.deliveryThreshold.toFixed(2)}` : '未设置' }}
                 </n-descriptions-item>
                 <n-descriptions-item label="最远配送距离">
                     {{ shop.maximumDistance !== null ? `${shop.maximumDistance} 公里` : '未设置' }}
@@ -109,6 +115,13 @@
                     {{ shop.address.coordinate[0] }}, {{ shop.address.coordinate[1] }}
                 </n-descriptions-item>
                 </n-descriptions>
+                <div style="margin-top: 16px">
+                <div
+                    v-if="shop.address.coordinate[0] !== null && shop.address.coordinate[1] !== null"
+                    id="shop-map-container"
+                    style="height: 260px; width: 100%; border-radius: 8px; overflow: hidden;"
+                ></div>
+                </div>
             </n-card>
             </n-gi>
         </n-grid>
@@ -118,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
     NPageHeader, NSpace, NButton, NIcon, NAvatar, NCard, NDescriptions,
@@ -129,7 +142,12 @@ import {
     CreateOutline, StorefrontOutline, LocationOutline, CallOutline, StarOutline, // StarOutline 可以替换为其他相关图标
     // ArrowBackOutline // n-page-header自带返回
 } from '@vicons/ionicons5'
-// import { format } from 'date-fns' // 如果需要更复杂的日期格式化
+import { getShopInfo, getShopCategories } from '@/api/shop'
+import AMapLoader from '@amap/amap-jsapi-loader';
+import ProductList from './product/ProductList.vue';
+import ShopItemCategoryView from './ShopItemCategoryView.vue';
+import ShopStatistics from './shop/ShopStatistics.vue';
+import ShopOrders from './ShopOrders.vue';
 
 // --- 复用 ShopEditForm.vue 中的数据模型定义 ---
 interface 地址 {
@@ -172,34 +190,58 @@ const shopId = computed(() => route.params.shopId as string)
 const shop = ref<店铺资料 | null>(null) // 使用更新后的接口
 const isLoading = ref(true)
 const currentTab = ref('overview')
+const validTabs = ['overview', 'products', 'categories', 'orders', 'statistics']
 
-// --- 复用 ShopEditForm.vue 中的模拟数据库和类型选项 ---
-const mockShopDatabaseFromEdit: Record<string, 店铺资料> = { // 类型改为 店铺资料
-    'shop-1': {
-    id: 'shop-1', name: '创意轻食坊', description: '健康美味，沙拉与三明治首选。',
-    avatarUrl: 'https://picsum.photos/seed/shop-1/200/200',
-    opened: true, openTimeStart: 540, openTimeEnd: 1200,
-    deliveryPrice: 500, deliveryThreshold: 2000, maximumDistance: 3.0,
-    categories: ['fast_food', 'local_snacks'],
-    address: {
-        name: '李经理', tel: '13800001111', province: '北京市', city: '北京市', district: '海淀区', town: '中关村街道',
-        address: '宇宙中心五道口大厦101室', coordinate: [116.334935, 39.996249]
-    },
-    verified: true, rating: 4.8, createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    'shop-2': {
-    id: 'shop-2', name: '甜蜜角落咖啡馆', description: '手冲咖啡与精致甜点。',
-    avatarUrl: 'https://picsum.photos/seed/shop-2/200/200',
-    opened: false, openTimeStart: 600, openTimeEnd: 1080,
-    deliveryPrice: 300, deliveryThreshold: 1500, maximumDistance: 2.0,
-    categories: ['dessert_drink'],
-    address: {
-        name: '王老板', tel: '13911112222', province: '上海市', city: '上海市', district: '徐汇区',
-        address: '衡山路123号', coordinate: [121.452323, 31.209175]
-    },
-    verified: false, rating: 4.2, createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-    },
-};
+// 初始化时根据 hash 设置 tab
+onMounted(() => {
+  const hash = window.location.hash.replace('#', '')
+  if (hash && validTabs.includes(hash)) {
+    currentTab.value = hash
+  }
+})
+
+watch(currentTab, (tab) => {
+  if (tab) {
+    window.location.hash = tab
+  }
+})
+
+// 监听浏览器后退/前进，切换 tab
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.replace('#', '')
+  if (hash && validTabs.includes(hash)) {
+    currentTab.value = hash
+  }
+})
+
+const categoryMap = ref<Record<string, string>>({});
+
+// const mockShopDatabaseFromEdit: Record<string, 店铺资料> = { // 类型改为 店铺资料
+//     'shop-1': {
+//     id: 'shop-1', name: '创意轻食坊', description: '健康美味，沙拉与三明治首选。',
+    // avatarUrl: 'https://picsum.photos/seed/shop-1/200/200',
+    // opened: true, openTimeStart: 540, openTimeEnd: 1200,
+    // deliveryPrice: 500, deliveryThreshold: 2000, maximumDistance: 3.0,
+    // categories: ['fast_food', 'local_snacks'],
+    // address: {
+    //     name: '李经理', tel: '13800001111', province: '北京市', city: '北京市', district: '海淀区', town: '中关村街道',
+    //     address: '宇宙中心五道口大厦101室', coordinate: [116.334935, 39.996249]
+    // },
+    // verified: true, rating: 4.8, createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
+    // },
+//     'shop-2': {
+//     id: 'shop-2', name: '甜蜜角落咖啡馆', description: '手冲咖啡与精致甜点。',
+    // avatarUrl: 'https://picsum.photos/seed/shop-2/200/200',
+    // opened: false, openTimeStart: 600, openTimeEnd: 1080,
+    // deliveryPrice: 300, deliveryThreshold: 1500, maximumDistance: 2.0,
+    // categories: ['dessert_drink'],
+    // address: {
+    //     name: '王老板', tel: '13911112222', province: '上海市', city: '上海市', district: '徐汇区',
+    //     address: '衡山路123号', coordinate: [121.452323, 31.209175]
+    // },
+    // verified: false, rating: 4.2, createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+    // },
+// };
 
 // 模拟店铺类型选项 (与 ShopEditForm.vue 中保持一致，用于显示)
 const categoryDisplayMap: Record<string, string> = {
@@ -214,51 +256,95 @@ const categoryDisplayMap: Record<string, string> = {
 
 const fetchShopDetails = async (id: string) => {
     isLoading.value = true;
-    console.log(`详情页: 模拟获取店铺 ${id} 的详细信息...`);
-    await new Promise(resolve => setTimeout(resolve, 300)); // 模拟延迟
-
-    // 尝试从编辑表单的模拟数据库获取最新数据（如果它被更新了）
-    // 注意：这仅用于演示目的，实际项目中应有统一数据源或状态管理
-    const potentiallyUpdatedShop = (window as any).mockShopDatabaseForEdit?.[id]; // 假设编辑表单的mockDB暴露到window
-    const data = potentiallyUpdatedShop || mockShopDatabaseFromEdit[id];
-
-
-    if (data) {
-    shop.value = JSON.parse(JSON.stringify(data)); // 深拷贝
-    } else {
-    shop.value = null;
-    message.error('店铺信息加载失败或店铺不存在');
+    try {
+        const data = await getShopInfo(id);
+        // 分转元
+        data.deliveryPrice = typeof data.deliveryPrice === 'number' ? +(data.deliveryPrice / 100).toFixed(2) : 0;
+        data.deliveryThreshold = typeof data.deliveryThreshold === 'number' ? +(data.deliveryThreshold / 100).toFixed(2) : 0;
+        shop.value = JSON.parse(JSON.stringify(data));
+    } catch (err) {
+        shop.value = null;
+        message.error('店铺信息加载失败或店铺不存在');
     }
     isLoading.value = false;
 };
 
-// --- 复用时间转换函数 ---
-const minutesToHHMM = (minutes: number | null): string => {
+const fetchCategories = async () => {
+    try {
+        const categories = await getShopCategories();
+        categoryMap.value = Object.fromEntries(categories.map(c => [c.id, c.name]));
+    } catch {
+        categoryMap.value = {};
+    }
+};
+
+// --- 时间转换函数 ---
+const utcMinutesToHHMM = (minutes: number | null): string => {
     if (minutes === null || minutes < 0 || minutes > 1439) return '未设置';
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
+    const utc0 = new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0));
+    const local = new Date(utc0.getTime() + minutes * 60000);
+    const h = local.getHours();
+    const m = local.getMinutes();
     return `${h < 10 ? '0' + h : h}:${m < 10 ? '0' + m : m}`;
 };
 
 // 价格格式化 (分 -> 元)
-const formatPrice = (priceInCents: number | null): string => {
-    if (priceInCents === null || typeof priceInCents !== 'number') return '未设置';
-    return `¥${(priceInCents / 100).toFixed(2)}`;
-};
+// const formatPrice = (priceInCents: number | null): string => {
+//     if (priceInCents === null || typeof priceInCents !== 'number') return '未设置';
+//     return `¥${(priceInCents / 100).toFixed(2)}`;
+// };
 
 // 格式化分类显示
 const formatCategory = (categoryKey: string): string => {
-    return categoryDisplayMap[categoryKey] || categoryKey;
+    return categoryMap.value[categoryKey] || categoryKey;
 }
 
+let map: any = null;
+let AMap: any = null;
 
-onMounted(() => {
-    if (shopId.value) {
-    fetchShopDetails(shopId.value);
-    } else {
-    message.error('无效的店铺ID');
-    isLoading.value = false;
+function renderShopMap() {
+  if (!shop.value || shop.value.address.coordinate[0] == null || shop.value.address.coordinate[1] == null) return;
+  const lng = shop.value.address.coordinate[0];
+  const lat = shop.value.address.coordinate[1];
+  if (!AMap) return;
+  if (map) {
+    map.destroy();
+    map = null;
+  }
+  map = new AMap.Map('shop-map-container', {
+    viewMode: '3D',
+    zoom: 16,
+    center: [lng, lat],
+  });
+  const marker = new AMap.Marker({
+    position: [lng, lat],
+    anchor: 'bottom-center',
+  });
+  map.add(marker);
+}
+
+onMounted(async () => {
+  fetchCategories();
+  if (shopId.value) {
+      fetchShopDetails(shopId.value);
+  } else {
+      message.error('无效的店铺ID');
+      isLoading.value = false;
+  }
+
+  // 加载高德地图API
+  AMap = await AMapLoader.load({
+    key: import.meta.env.VITE_AMAP_KEY,
+    version: '2.0',
+    plugins: ['AMap.Scale'],
+  });
+  // 地图渲染需等DOM ready
+  watch(shop, async (val) => {
+    if (val && val.address.coordinate[0] !== null && val.address.coordinate[1] !== null) {
+      await nextTick();
+      renderShopMap();
     }
+  }, { immediate: true });
 });
 
 // 监听路由参数变化，如果 shopId 变了，重新加载数据
@@ -278,6 +364,14 @@ const handleEditShop = () => {
     if (!shop.value) return;
     router.push(`/merchant/shops/edit/${shop.value.id}`);
 };
+
+// 解决切换 tab 回到概览页后地图消失的问题
+watch(currentTab, async (tab) => {
+  if (tab === 'overview' && shop.value && shop.value.address.coordinate[0] !== null && shop.value.address.coordinate[1] !== null) {
+    await nextTick();
+    renderShopMap();
+  }
+});
 
 </script>
 
