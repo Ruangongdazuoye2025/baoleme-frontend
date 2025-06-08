@@ -10,10 +10,9 @@
       <n-spin size="large" />
     </div>
     <div v-else-if="productDetail && productDetail.cover" class="detail-container">
-      <n-image
+      <img
         :src="productDetail.cover.origin"
         class="detail-image"
-        object-fit="cover"
       />
       <p class="detail-description">{{ productDetail.description }}</p>
       <n-space justify="space-between" class="detail-stats">
@@ -22,7 +21,10 @@
       </n-space>
       <n-divider />
       <n-space justify="space-between" align="center">
-        <span class="detail-price">¥{{ (productDetail.price / 100).toFixed(2) }}</span>
+        <div>
+          <span class="detail-price">¥{{ (productDetail.price / 100).toFixed(2) }}</span>
+          <span v-if="productDetail.priceWithoutPromotion > productDetail.price" class="product-price-del">¥{{ (productDetail.priceWithoutPromotion / 100).toFixed(2) }}</span>
+        </div>
         <n-button 
           type="primary" 
           @click="handleAddToCart"
@@ -121,5 +123,10 @@ const handleAddToCart = () => {
   font-size: 24px;
   font-weight: bold;
   color: #ff4d4f;
+}
+.product-price-del {
+  margin-left: 4px;
+  text-decoration: line-through;
+  color: #0000007f
 }
 </style>

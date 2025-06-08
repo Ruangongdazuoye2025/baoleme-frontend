@@ -27,7 +27,7 @@
         class="order-scroll-list"
       >
         <n-space vertical :size="12" class="mt-4">
-          <OrderCard v-for="order in orders" :key="order.id" :order="order" :cover="shopCoverMap[order.shop || '']" />
+          <OrderCard v-for="order in orders" :order="order" />
         </n-space>
         <n-skeleton v-if="isLoading" height="40px" :sharp="false" />
         <div v-if="!hasMore && orders.length > 0" class="no-more">没有更多订单了</div>

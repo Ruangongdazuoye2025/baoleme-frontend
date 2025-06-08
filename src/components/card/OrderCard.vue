@@ -1,55 +1,50 @@
 <template>
-    <div class="order-card-wrapper">
-        <n-card class="mb-4" :title="shopInfo.name || '未知店铺'" hoverable>
-            <template #header-extra>
-                <n-tag type="info">{{ order.status ||  '📍未知状态'}}</n-tag>
-            </template>
-            <div class="order-card-info" @click="getOrderItem(order.id)">
-                <n-space align="start" :wrap="false" size="large">
-                    <div class="order-left">
-                        <n-avatar :size="120" :src="shopInfo.cover && shopInfo.cover.origin" />
-                    </div>
+    <n-card class="mb-4" :title="shopInfo?.name || '未知店铺'" hoverable>
+        <template #header-extra>
+            <n-tag type="info">{{ order.status ||  '未知状态'}}</n-tag>
+        </template>
+        <div class="order-card-info" @click="getOrderItem(order.id)">
+            <n-space align="start" :wrap="false" size="large">
+                <div class="order-left">
+                    <n-avatar :size="120" :src="shopInfo?.cover.thumbnail" />
+                </div>
 
-                    <div class="order-right">
-                        <div class="order-detail-time">下单时间：{{ order.createdAt }}</div>
-                        <div class="order-items">{{ order.items.map(item => item.name).join('、') }}</div>
-                        <div class="order-total">￥{{ order.total }}</div>
-                    </div>
-                </n-space>
-            </div>
-            <!-- 送餐进度条 -->
-            <div style="overflow-x: auto" class="timeline-container">
-                <template v-if="order.status !== Status.Finished">
-                    <!-- 横向进度条 -->
-                    <n-timeline horizontal>
-                        <n-timeline-item v-for="(step, index) in steps" :key="index"
-                            :type="index < currentStep ? 'success' : (index === currentStep ? 'warning' : 'default')"
-                            :title="step.title" :content="step.content"/>
-                    </n-timeline>
-                </template>
+                <div class="order-right">
+                    <div class="order-detail-time">下单时间：{{ (new Date(order.createdAt)).toLocaleString() }}</div>
+                    <div class="order-items">{{ order.items.map(item => item.name).join('、') }}</div>
+                    <div class="order-total">￥{{ (order.total / 100).toFixed(2) }}</div>
+                </div>
+            </n-space>
+        </div>
+        <!-- 送餐进度条 -->
+        <div style="overflow-x: auto" class="timeline-container">
+                <!-- 横向进度条 -->
+                <n-steps :current="currentStep" horizontal>
+                    <n-step v-for="(step, index) in steps"
+                        :title="step.title" :description="step.content"/>
+                </n-steps>
+                <!-- 订单完成后显示的按钮组 -->
+                <div class="action-buttons" >
+                    <n-button v-if="role.includes('customer') && order.status === Status.Finished" primary @click="evaluate(order)">评价</n-button>
+                    <n-button v-if="role.includes('customer') && order.status === Status.Unpaid" primary @click="pay(order)">付款</n-button>
+                    <n-button v-if="role.includes('customer') && order.status === Status.Unpaid" type="error" @click="cancel(order)" primary>取消</n-button>
+                    <n-button v-if="role.includes('merchant') && order.status === Status.Preparing" primary @click="finishPreparing(order)">准备完成</n-button>
+                    <n-button v-if="role.includes('rider') && order.status === Status.Delivering" primary @click="finishDelivering(order)">配送完成</n-button>
+                </div>
+        </div>
 
-                <template v-else>
-                    <!-- 订单完成后显示的按钮组 -->
-                    <div class="action-buttons">
-                        <n-button type="primary" ghost @click="evaluate(order)">评价</n-button>
-                        <n-button type="info" ghost @click="viewInvoice(order)">查看发票</n-button>
-                        <n-button type="error" ghost @click="deleteOrder(order)">删除订单</n-button>
-                        <n-button type="success" ghost @click="buyAgain(order)">再次购买</n-button>
-                    </div>
-                </template>
-            </div>
-
-        </n-card>
-    </div>
+    </n-card>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { NTag, NCard } from 'naive-ui'
+import { computed, onMounted, ref } from 'vue'
+import { NTag, NCard, NSteps, NStep } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
 import { Status, type Order, type OrderItem } from '@/types/order'
 import { useTokenStore } from '@/stores/token'
 import type { ShopInfo } from '@/types/shop'
+import { getShopInfo } from '@/api/shop'
+import { updateOrderStatus } from '@/api/orders'
 
 const route = useRoute()
 const router = useRouter()
@@ -61,78 +56,72 @@ const isShowTimeline = (status: string) => {
     return false
 }
 // 组件参数
-const { order } = defineProps({
-    order: {
-        type: Object as () => Order,
-        required: true
-    }
-})
+const order = defineModel<Order>('order', { required: true })
 
-const getShopAvator = async (shopId: string) => {
-    try {
-        const shop = fetchShopInfo(shopId) as unknown as ShopInfo
-        return shop.cover.origin
-    } catch (error) {
-        return 'https://picsum.photos/300/300?random=1'
-    }
-}
-const getShopInfo = async (shopId: string): Promise<ShopInfo> => {
-    return fetchShopInfo(shopId) as unknown as ShopInfo
-}
-
-const shopInfo = ref<ShopInfo>({} as ShopInfo)
+const shopInfo = ref<ShopInfo | null>(null)
 onMounted(async () => {
     try {
-        shopInfo.value =await getShopInfo(order.shop!)
+        shopInfo.value =await getShopInfo(order.value.shop!)
     } catch (error) {
-        shopInfo.value = {} as ShopInfo
+        shopInfo.value = null
     }
     
 })
 
 // 定义进度条状态数据
-const steps = [
+const steps = computed(() => [
     {
         title: '下单成功',
-        content: '用户已提交订单',
-        // time: '2025-05-19 15:00',
-        type: 'success',
+        content: order.value.paidAt ? (new Date(order.value.paidAt)).toLocaleString() : '',
     },
     {
-        title: '商家接单',
-        content: '商家已确认并准备制作',
-        // time: '2025-05-19 15:02',
-        type: 'info',
+        title: '商品准备完成',
+        content: order.value.preparedAt ? (new Date(order.value.preparedAt)).toLocaleString() : '',
     },
     {
         title: '配送中',
-        content: '骑手正在配送',
-        // time: '2025-05-19 15:10',
-        type: 'info',
+        content: order.value.deliveredAt ? (new Date(order.value.deliveredAt)).toLocaleString() : '',
     },
     {
         title: '送达',
-        content: '订单已送达用户手中',
-        // time: '',
-        type: 'warning',
+        content: order.value.finishedAt ? (new Date(order.value.finishedAt)).toLocaleString() : '',
     },
-    {
-        title: '完成',
-        content: '订单流程已结束',
-        // time: '',
-        type: 'default',
-    }
-]
+])
 
-const currentStep = ref(3) // 当前步骤索引
+const currentStep = computed(() => {
+    switch (order.value.status) {
+        case Status.Preparing:
+            return 1
+        case Status.Prepared:
+            return 2
+        case Status.Delivering:
+            return 3
+        case Status.Finished:
+            return 4
+        default:
+            return 0
+    }
+})
+
+const tokenStore = useTokenStore()
+
+const role = computed<('customer' | 'merchant' | 'rider')[]>(() => {
+    const ret = []
+    if (tokenStore.userId === order.value.customer) {
+        ret.push('customer')
+    }
+    if (tokenStore.userId === shopInfo.value?.owner) {
+        ret.push('merchant')
+    }
+    if (tokenStore.userId === order.value.rider) {
+        ret.push('rider')
+    }
+    return ret as any
+})
 
 const getOrderItem = (id: string) => {
     console.log('获取订单详情', id)
-    if (useTokenStore().role != 'rider') {
-        router.push({ path: '/orders/:id', query: { id } }) // 添加路由参数
-    } else if (useTokenStore().role == 'rider') {
-        router.push({ path: '/rider/order/:id', query: { id } })
-    }
+    router.push({ path: `/orders/${id}` }) // 添加路由参数
 }
 
 // TODO：按钮逻辑
@@ -140,37 +129,25 @@ const evaluate = (order: Order) => {
     router.push({ path: `/comments/${order.id}` })
 }
 
-const viewInvoice = (order: Order) => {
-    // 打开发票详情
-    console.log('查看发票', order)
-    alert("Not implemented")
+const pay = async (o: Order) => {
+    order.value = await updateOrderStatus(o.id, Status.Preparing)
 }
 
-const deleteOrder = (order: Order) => {
-    // 弹出确认框并删除
-    console.log('删除订单', order)
-    alert("Not implemented")
+const cancel = async (o: Order) => {
+    order.value = await updateOrderStatus(o.id, Status.Canceled)
 }
 
-const buyAgain = (order: Order) => {
-    // 跳转购买流程
-    console.log('再次购买', order)
-    alert("Not implemented")
+const finishPreparing = async (o: Order) => {
+    order.value = await updateOrderStatus(o.id, Status.Prepared)
 }
 
-
-
-function fetchShopInfo(shopId: string) {
-    throw new Error('Function not implemented.')
+const finishDelivering = async (o: Order) => {
+    order.value = await updateOrderStatus(o.id, Status.Finished)
 }
+
 </script>
 
 <style scoped>
-.order-card-wrapper {
-    width: 100%;
-    padding: 1rem;
-    box-sizing: border-box;
-}
 
 /* 动态光影 */
 .mb-4 {
@@ -251,6 +228,7 @@ function fetchShopInfo(shopId: string) {
 
 /* 进度条 */
 .timeline-container {
+    display: flex;
     margin-top: 1rem;
     max-height: 10rem;
     overflow-y: hidden;

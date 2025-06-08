@@ -301,7 +301,7 @@ onMounted(async () => {
   // 获取热门商家
   try {
     isLoadingShops.value = true
-    recommendedShops.value = await getRecommendedShops({ p: 1, pn: 10, rc: 1 })
+    recommendedShops.value = await getRecommendedShops({ p: 0, pn: 10, rc: 1 })
   } catch (e: any) {
     console.error('获取推荐店铺失败:', e)
     errorShops.value = '无法加载推荐商家，请检查网络后重试。'
@@ -312,7 +312,7 @@ onMounted(async () => {
   // 获取推荐商品
   try {
     isLoadingItems.value = true
-    recommendedItems.value = await getRecommendedItems({ p: 1, pn: 10 })
+    recommendedItems.value = await getRecommendedItems({ p: 0, pn: 10 })
   } catch (e: any) {
     console.error('获取推荐商品失败:', e)
     errorItems.value = '无法加载推荐商品，请检查网络后重试。'

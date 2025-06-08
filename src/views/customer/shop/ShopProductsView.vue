@@ -50,7 +50,8 @@
         <n-icon :component="CartOutline" size="28" />
       </n-badge>
       <div class="cart-price">
-        ¥{{ (cartStore.totalPrice / 100).toFixed(2) }}
+        <div class="cart-total">¥{{ (cartStore.totalPrice / 100).toFixed(2) }}</div>
+        另需配送费 ¥{{ shopInfo ? (shopInfo.deliveryPrice / 100).toFixed(2) : '0.00' }}{{ shopInfo && cartStore.totalPrice + shopInfo.deliveryPrice < shopInfo.deliveryThreshold ? `，距起送金额还差¥${((shopInfo.deliveryThreshold - cartStore.totalPrice - shopInfo.deliveryPrice) / 100).toFixed(2)}` : '' }}
       </div>
       <n-button 
         type="primary"
@@ -216,6 +217,7 @@ const goBack = () => {
 .category-empty { padding: 40px 0; }
 .cart-bar { flex-shrink: 0; height: 60px; background-color: #4a4a4a; color: #fff; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; }
 .cart-badge { color: #fff; }
-.cart-price { font-size: 18px; font-weight: bold; margin-left: 16px; flex-grow: 1; }
+.cart-price { margin-left: 16px; flex-grow: 1; }
+.cart-total { font-size: 18px; font-weight: bold; }
 .loading-container { display: flex; justify-content: center; align-items: center; height: 100%; }
 </style>

@@ -109,8 +109,7 @@ onMounted(() => {
 
 <style scoped>
 .preparing-highlight {
-  background: #fffbe6;
-  border: 1.5px solid #ffe58f;
+  background: #fef2c9;
   border-radius: 12px;
 }
 .no-orders {
