@@ -87,17 +87,17 @@
       </div>
     </div>
     <div v-else class="empty-state">
-       <n-empty description="附近暂无推荐商家"></n-empty>
+        <n-empty description="附近暂无推荐商家"></n-empty>
     </div>
     <div class="section-title">
       <span>猜你喜欢</span>
     </div>
 
     <div v-if="isLoadingItems" class="loading-state">
-       <n-spin size="medium" />
+        <n-spin size="medium" />
       <p>正在加载推荐商品...</p>
     </div>
-     <div v-else-if="errorItems" class="error-state">
+      <div v-else-if="errorItems" class="error-state">
       <n-alert title="加载失败" type="error">{{ errorItems }}</n-alert>
     </div>
     <div v-else-if="recommendedItems.length > 0" class="recommendation-list">
@@ -115,8 +115,9 @@
       </div>
     </div>
     <div v-else class="empty-state">
-       <n-empty description="暂无推荐商品"></n-empty>
+        <n-empty description="暂无推荐商品"></n-empty>
     </div>
+    
     <n-modal
       v-model:show="showLocationPicker"
       preset="card"
@@ -126,33 +127,66 @@
       :segmented="{ content: true }"
     >
       <div class="location-list">
-        <div class="location-header">
-          <n-icon size="18"><environment-filled /></n-icon>
-          <span>当前定位</span>
+        <div v-if="isLoadingAddresses" class="loading-state">
+          <n-spin size="small" />
+          <p>正在加载地址...</p>
         </div>
-        <div class="current-location-item" @click="selectLocation('北京航空航天大学-学生宿舍区')">
-          <div class="location-name">北京航空航天大学-学生宿舍区</div>
-          <div class="location-address">北京市海淀区学院路37号</div>
+
+        <div v-else-if="errorAddresses" class="error-state">
+          <n-alert title="加载失败" type="error" :show-icon="false">
+            {{ errorAddresses }}
+          </n-alert>
+          <n-button @click="fetchUserAddresses" type="primary" secondary block class="retry-btn">
+            点击重试
+          </n-button>
         </div>
         
-        <div class="location-header">
-          <n-icon size="18"><pushpin-filled /></n-icon>
-          <span>收货地址</span>
-        </div>
-        <div 
-          v-for="(address, index) in savedAddresses" 
-          :key="index"
-          class="location-item"
-          @click="selectLocation(address.name)"
-        >
-          <div class="location-info">
-            <div class="location-name">{{ address.name }}</div>
-            <div class="location-address">{{ address.address }}</div>
+        <div v-else>
+          <n-empty v-if="userAddresses.length === 0" description="您还没有添加过收货地址">
+            <template #extra>
+              <n-button type="primary" @click="router.push('/address/new')">
+                立即添加
+              </n-button>
+            </template>
+          </n-empty>
+
+          <div v-else>
+             <div class="location-header">
+                <n-icon size="18"><pushpin-filled /></n-icon>
+                <span>我的收货地址</span>
+              </div>
+              <div 
+                v-for="address in userAddresses" 
+                :key="address.id"
+                class="location-item"
+                @click="selectLocation(address)"
+              >
+                <div class="location-info">
+                  <div class="location-name">
+                    {{ address.name }}
+                    <n-tag v-if="address.isDefault" size="small" type="success" :bordered="false">默认</n-tag>
+                  </div>
+                  <div class="location-details">
+                    <span>{{ address.tel }}</span>
+                  </div>
+                  <div class="location-address">
+                    {{ address.province }}{{ address.city }}{{ address.district }}{{ address.address }}
+                  </div>
+                </div>
+                <n-button text @click.stop="router.push(`/address/${address.id}/edit`)">
+                   <n-icon size="16"><edit-outlined /></n-icon>
+                </n-button>
+              </div>
           </div>
-          <div class="location-tag">{{ address.tag }}</div>
         </div>
-        
-        <n-button block type="primary" class="add-address-btn" @click="router.push('/address/new')">
+
+        <n-button 
+          v-if="!isLoadingAddresses && !errorAddresses && userAddresses.length > 0" 
+          block 
+          type="primary" 
+          class="add-address-btn" 
+          @click="router.push('/address/new')"
+        >
           添加新地址
         </n-button>
       </div>
@@ -168,21 +202,55 @@ import {
   EnvironmentOutlined, 
   DownOutlined, 
   SearchOutlined,
-  EnvironmentFilled,
   PushpinFilled,
-  CoffeeOutlined,
-  ShoppingOutlined,
-  TeamOutlined,
-  StarFilled,
+  EditOutlined, // 新增导入
 } from '@vicons/antd'
 import { getRecommendedShops, getRecommendedItems } from '@/api/recommend'
 import type { RecommendedShop, RecommendedItem } from '@/types/recommend'
+import { getAddresses } from '@/api/address'
+import type { Address } from '@/types/address'
 
 const router = useRouter()
-const currentLocation = ref('北京航空航天大学-学生宿舍区')
+
+// -- 修改地址相关状态 --
+const userAddresses = ref<Address[]>([])
+const isLoadingAddresses = ref(false)
+const errorAddresses = ref<string | null>(null)
+const currentLocation = ref('请选择收货地址') // 默认提示
 const showLocationPicker = ref(false)
 
-// ########## 新增的API数据、加载和错误状态 ##########
+// 选择位置的函数，现在接收一个完整的地址对象
+const selectLocation = (address: Address) => {
+  currentLocation.value = address.name
+  // 后续可以考虑将选中的地址信息存入 Pinia store 或 emit 出去
+  showLocationPicker.value = false
+}
+
+// 获取地址列表的函数
+const fetchUserAddresses = async () => {
+  isLoadingAddresses.value = true
+  errorAddresses.value = null
+  try {
+    const addresses = await getAddresses()
+    userAddresses.value = addresses
+
+    // 如果有地址，默认选中“默认地址”或第一个地址
+    if (addresses.length > 0) {
+      const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0]
+      currentLocation.value = defaultAddress.name
+    } else {
+      currentLocation.value = '无可用地址'
+    }
+  } catch (e) {
+    console.error('获取地址列表失败:', e)
+    errorAddresses.value = '无法加载您的地址列表，请稍后重试。'
+    currentLocation.value = '加载地址失败'
+  } finally {
+    isLoadingAddresses.value = false
+  }
+}
+
+// ########## API数据、加载和错误状态 ##########
 const recommendedShops = ref<RecommendedShop[]>([])
 const recommendedItems = ref<RecommendedItem[]>([])
 const isLoadingShops = ref(true)
@@ -194,8 +262,6 @@ const errorItems = ref<string | null>(null)
 const formatPrice = (price: number) => {
   return (price / 100).toFixed(2)
 }
-// #################################################
-
 
 // 轮播图数据(保持不变)
 const banners = ref([
@@ -227,41 +293,11 @@ const activities = ref([
   }
 ])
 
-// 收货地址数据(保持不变)
-const savedAddresses = ref([
-  {
-    id: 1,
-    name: "北京航空航天大学-学生宿舍区",
-    address: "北京市海淀区学院路37号",
-    tag: "学校"
-  },
-  {
-    id: 2,
-    name: "北京航空航天大学-教学楼",
-    address: "北京市海淀区学院路37号",
-    tag: "教室"
-  },
-  {
-    id: 3,
-    name: "北京航空航天大学-图书馆",
-    address: "北京市海淀区学院路37号",
-    tag: "图书馆"
-  }
-])
-
-// 选择位置(保持不变)
-const selectLocation = (location: string) => {
-  currentLocation.value = location
-  showLocationPicker.value = false
-}
-
-// 处理功能入口点击(保持不变)
-const handleEntryClick = (item: any) => {
-  router.push(item.path)
-}
-
 // ########## 修改 onMounted, 添加数据获取逻辑 ##########
 onMounted(async () => {
+  // 首次进入页面时获取地址
+  fetchUserAddresses()
+
   // 获取热门商家
   try {
     isLoadingShops.value = true
@@ -605,41 +641,45 @@ onMounted(async () => {
   margin-left: 6px;
 }
 
-.current-location-item, .location-item {
+.location-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 12px;
   border-radius: 8px;
   background-color: #f9f9f9;
   margin-bottom: 12px;
   cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.3s;
 }
 
-.current-location-item {
-  border-left: 3px solid #ff6b01;
+.location-item:hover {
+  border-color: #ff6b01;
 }
 
-.location-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.location-info {
+  flex-grow: 1;
 }
 
 .location-name {
   font-size: 16px;
   font-weight: 500;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.location-details {
+  font-size: 13px;
+  color: #666;
   margin-bottom: 4px;
 }
 
 .location-address {
-  font-size: 12px;
+  font-size: 13px;
   color: #999;
-}
-
-.location-tag {
-  padding: 2px 8px;
-  background-color: #FFF5F0;
-  color: #FF6B01;
-  border-radius: 12px;
-  font-size: 12px;
 }
 
 .add-address-btn {
@@ -662,5 +702,8 @@ onMounted(async () => {
 }
 .error-state {
     padding: 10px 16px;
+}
+.retry-btn {
+  margin-top: 16px;
 }
 </style>
