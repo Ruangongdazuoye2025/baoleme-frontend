@@ -366,8 +366,6 @@ const handleSave = (e: MouseEvent) => {
             const { createShop, updateShopImages } = await import('@/api/shop');
             const address = {
                 ...formData.value.address,
-                id: '',
-                isDefault: false,
                 coordinate: [
                     formData.value.address.coordinate[0] ?? 0,
                     formData.value.address.coordinate[1] ?? 0
