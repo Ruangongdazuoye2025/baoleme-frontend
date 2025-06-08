@@ -17,6 +17,14 @@
         />
         <span class="shop-title">{{ shopInfo?.name || '加载中...' }}</span>
         <n-button type="info" class="comment-btn" @click.stop="showCommentModal = true">查看店铺评价</n-button>
+        <n-button
+          :type="isShopFavorite ? 'warning' : 'default'"
+          class="favorite-btn"
+          @click.stop="toggleShopFavorite"
+          size="small"
+        >
+          {{ isShopFavorite ? '取消收藏' : '加入收藏' }}
+        </n-button>
       </div>
     </div>
     
@@ -99,6 +107,8 @@ import { useCartStore } from '@/stores/cart';
 import { getShopInfo } from '@/api/shop';
 import { getShopAllProducts } from '@/api/product';
 import { getShopItemCategories } from '@/api/category.ts';
+import { getShopFavorite, addShopFavorite, deleteShopFavorite } from '@/api/favorites'
+import { addShopHistory } from '@/api/records'
 import type { ShopInfo } from '@/types/shop';
 import type { ProductData } from '@/types/product';
 import type { ItemCategory } from '@/types/category';
@@ -126,6 +136,32 @@ const showDetailModal = ref(false);
 const selectedProductId = ref<string | null>(null);
 const showCartDrawer = ref(false);
 const showCommentModal = ref(false);
+const isShopFavorite = ref(false)
+
+const checkShopFavorite = async () => {
+  if (!shopInfo.value?.id) return
+  try {
+    await getShopFavorite(shopInfo.value.id)
+    isShopFavorite.value = true
+  } catch (e: any) {
+    if (e?.response?.status === 404) {
+      isShopFavorite.value = false
+    }
+  }
+}
+
+const toggleShopFavorite = async () => {
+  if (!shopInfo.value?.id) return
+  if (isShopFavorite.value) {
+    await deleteShopFavorite(shopInfo.value.id)
+    isShopFavorite.value = false
+    message.success('已取消收藏')
+  } else {
+    await addShopFavorite(shopInfo.value.id)
+    isShopFavorite.value = true
+    message.success('已加入收藏')
+  }
+}
 
 onMounted(async () => {
   isLoading.value = true;
@@ -147,6 +183,11 @@ onMounted(async () => {
 
     // 加载该店铺的购物车信息
     cartStore.loadCart(shopId);
+
+    if (shopInfo.value?.id) {
+      await addShopHistory(shopInfo.value.id)
+      await checkShopFavorite()
+    }
 
   } catch (error) {
     console.error("加载店铺数据失败:", error);
@@ -263,5 +304,8 @@ const goBack = () => {
 }
 .comment-btn {
   margin-left: auto;
+}
+.favorite-btn {
+  margin-left: 12px;
 }
 </style>

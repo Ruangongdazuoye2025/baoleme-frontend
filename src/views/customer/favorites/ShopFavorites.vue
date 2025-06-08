@@ -27,7 +27,7 @@ const message = useMessage()
 
 const fetchFavorites = async () => {
   try {
-    favorites.value = await getShopFavorites(1, 100)
+    favorites.value = await getShopFavorites(0, 100)
   } catch (error) {
     message.error('加载店铺收藏失败')
   }
