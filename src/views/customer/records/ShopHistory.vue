@@ -28,7 +28,7 @@ const message = useMessage()
 const fetchHistory = async () => {
   try {
     // 暂定获取第一页，每页100条记录
-    records.value = await getShopHistory(1, 100)
+    records.value = await getShopHistory(0, 100)
   } catch (error) {
     console.error(error)
     message.error('加载店铺历史记录失败')

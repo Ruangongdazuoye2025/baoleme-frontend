@@ -53,7 +53,7 @@
                     <n-icon :component="LocationOutline" style="vertical-align: middle;" /> 地址: {{ item.address }}
                   </n-text>
                   <n-text :depth="3">
-                    <n-icon :component="StarOutline" style="vertical-align: middle;" /> 评分: {{ item.rating }} / 5
+                    <n-icon :component="StarOutline" style="vertical-align: middle;" /> 评分: {{ item.rating / 10 }} / 5
                   </n-text>
                 </n-space>
               </n-thing>

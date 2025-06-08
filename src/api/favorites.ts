@@ -50,3 +50,45 @@ export const deleteItemFavorite = async (itemId: string): Promise<void> => {
     headers: { Authorization: `Bearer ${getToken()}` }
   })
 }
+
+/**
+ * 获取单个店铺收藏
+ * @param shopId 店铺ID
+ */
+export const getShopFavorite = async (shopId: string): Promise<ShopFavoriteRecord> => {
+  const res = await axios.get(`${apiRoot}/favorites/shops/${shopId}`, {
+    headers: { Authorization: `Bearer ${getToken()}` }
+  })
+  return res.data
+}
+
+/**
+ * 增加店铺收藏
+ * @param shopId 店铺ID
+ */
+export const addShopFavorite = async (shopId: string): Promise<void> => {
+  await axios.post(`${apiRoot}/favorites/shops/${shopId}`, {}, {
+    headers: { Authorization: `Bearer ${getToken()}` }
+  })
+}
+
+/**
+ * 获取单个商品收藏
+ * @param itemId 商品ID
+ */
+export const getItemFavorite = async (itemId: string): Promise<ItemFavoriteRecord> => {
+  const res = await axios.get(`${apiRoot}/favorites/items/${itemId}`, {
+    headers: { Authorization: `Bearer ${getToken()}` }
+  })
+  return res.data
+}
+
+/**
+ * 增加商品收藏
+ * @param itemId 商品ID
+ */
+export const addItemFavorite = async (itemId: string): Promise<void> => {
+  await axios.post(`${apiRoot}/favorites/items/${itemId}`, {}, {
+    headers: { Authorization: `Bearer ${getToken()}` }
+  })
+}

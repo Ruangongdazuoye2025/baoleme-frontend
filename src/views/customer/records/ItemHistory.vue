@@ -27,7 +27,7 @@ const message = useMessage()
 
 const fetchHistory = async () => {
   try {
-    records.value = await getItemHistory(1, 100)
+    records.value = await getItemHistory(0, 100)
   } catch (error) {
     message.error('加载商品历史记录失败')
   }

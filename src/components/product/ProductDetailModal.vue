@@ -25,16 +25,25 @@
           <span class="detail-price">¥{{ (productDetail.price / 100).toFixed(2) }}</span>
           <span v-if="productDetail.priceWithoutPromotion > productDetail.price" class="product-price-del">¥{{ (productDetail.priceWithoutPromotion / 100).toFixed(2) }}</span>
         </div>
-        <n-button 
-          type="primary" 
-          @click="handleAddToCart"
-          :disabled="productDetail.stockout"
-        >
-          <template #icon>
-            <n-icon><PlusOutlined /></n-icon>
-          </template>
-          {{ productDetail.stockout ? '已售罄' : '加入购物车' }}
-        </n-button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <n-button 
+            :type="isFavorite ? 'warning' : 'default'"
+            @click="toggleFavorite"
+            size="small"
+          >
+            {{ isFavorite ? '取消收藏' : '加入收藏' }}
+          </n-button>
+          <n-button 
+            type="primary" 
+            @click="handleAddToCart"
+            :disabled="productDetail.stockout"
+          >
+            <template #icon>
+              <n-icon><PlusOutlined /></n-icon>
+            </template>
+            {{ productDetail.stockout ? '已售罄' : '加入购物车' }}
+          </n-button>
+        </div>
       </n-space>
     </div>
     <div v-else class="empty-state">
@@ -49,6 +58,8 @@ import { ref, watch, type PropType } from 'vue';
 import { NModal, NImage, NSpace, NButton, NIcon, NSpin, NRate, NDivider } from 'naive-ui';
 import { PlusOutlined } from '@vicons/antd';
 import { getProductDetail } from '@/api/product';
+import { getItemFavorite, addItemFavorite, deleteItemFavorite } from '@/api/favorites'
+import { addItemHistory } from '@/api/records'
 import type { ProductData } from '@/types/product';
 
 const props = defineProps({
@@ -67,6 +78,32 @@ const emit = defineEmits(['update:show', 'add-to-cart']);
 
 const productDetail = ref<ProductData | null>(null);
 const isLoading = ref(false);
+const isFavorite = ref<boolean>(false)
+
+// 检查商品是否被收藏
+const checkFavorite = async () => {
+  if (!props.productId) return
+  try {
+    await getItemFavorite(props.productId)
+    isFavorite.value = true
+  } catch (e: any) {
+    if (e?.response?.status === 404) {
+      isFavorite.value = false
+    }
+  }
+}
+
+// 收藏/取消收藏
+const toggleFavorite = async () => {
+  if (!props.productId) return
+  if (isFavorite.value) {
+    await deleteItemFavorite(props.productId)
+    isFavorite.value = false
+  } else {
+    await addItemFavorite(props.productId)
+    isFavorite.value = true
+  }
+}
 
 watch(() => props.show, async (isShown) => {
   if (isShown && props.productId) {
@@ -74,9 +111,12 @@ watch(() => props.show, async (isShown) => {
     productDetail.value = null;
     try {
       const data = await getProductDetail(props.productId);
-      
       if (props.show) {
         productDetail.value = data;
+        // 增加商品历史记录
+        await addItemHistory(props.productId)
+        // 检查收藏状态
+        await checkFavorite()
       }
     } catch (error) {
       console.error('获取商品详情失败:', error);

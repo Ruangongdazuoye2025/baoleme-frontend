@@ -50,3 +50,45 @@ export const deleteItemHistory = async (itemId: string): Promise<void> => {
     headers: { Authorization: `Bearer ${getToken()}` }
   })
 }
+
+/**
+ * 获取单个店铺历史记录
+ * @param shopId 店铺ID
+ */
+export const getShopHistoryRecord = async (shopId: string): Promise<ShopHistoryRecord> => {
+  const res = await axios.get(`${apiRoot}/records/shops/${shopId}`, {
+    headers: { Authorization: `Bearer ${getToken()}` }
+  })
+  return res.data
+}
+
+/**
+ * 增加店铺历史记录
+ * @param shopId 店铺ID
+ */
+export const addShopHistory = async (shopId: string): Promise<void> => {
+  await axios.post(`${apiRoot}/records/shops/${shopId}`, {}, {
+    headers: { Authorization: `Bearer ${getToken()}` }
+  })
+}
+
+/**
+ * 获取单个商品历史记录
+ * @param itemId 商品ID
+ */
+export const getItemHistoryRecord = async (itemId: string): Promise<ItemHistoryRecord> => {
+  const res = await axios.get(`${apiRoot}/records/items/${itemId}`, {
+    headers: { Authorization: `Bearer ${getToken()}` }
+  })
+  return res.data
+}
+
+/**
+ * 增加商品历史记录
+ * @param itemId 商品ID
+ */
+export const addItemHistory = async (itemId: string): Promise<void> => {
+  await axios.post(`${apiRoot}/records/items/${itemId}`, {}, {
+    headers: { Authorization: `Bearer ${getToken()}` }
+  })
+}
