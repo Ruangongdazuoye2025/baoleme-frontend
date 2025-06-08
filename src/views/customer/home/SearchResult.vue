@@ -276,7 +276,7 @@ import {
 import { getRecommendedItems } from '@/api/recommend'
 import { getRecommendedShops } from '@/api/recommend'
 import { getAddresses } from '@/api/address'
-import type { RecommendedProduct, RecommendedShop } from '@/types/recommend'
+import type { RecommendedItem as RecommendedProduct, RecommendedShop } from '@/types/recommend'
 import type { Address } from '@/types/address'
 import InfiniteScrollList from '@/components/common/InfiniteScrollList.vue'
 

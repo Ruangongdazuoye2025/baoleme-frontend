@@ -51,7 +51,7 @@ import {
 } from 'naive-ui';
 import { SearchOutlined } from '@vicons/antd';
 import { getRecommendedShops } from '@/api/recommend';
-import type { RecommendedShop, GetRecommendedShopsRequest } from '@/types/recommend';
+import { type RecommendedShop, type GetRecommendedShopsRequest, RecommendedShopsSortBy } from '@/types/recommend';
 import ShopCard from '@/components/shop/ShopCard.vue';
 
 const canRenderScroll = ref(true);
@@ -59,7 +59,7 @@ const canRenderScroll = ref(true);
 const route = useRoute();
 const shops = ref<RecommendedShop[]>([]);
 const searchQuery = ref((route.query.q as string) || '');
-const sortBy = ref<GetRecommendedShopsRequest['s']>('c');
+const sortBy = ref<GetRecommendedShopsRequest['s']>(RecommendedShopsSortBy.Comprehensive);
 const page = ref(1);
 const pageSize = 12;
 const isLoading = ref(false);
