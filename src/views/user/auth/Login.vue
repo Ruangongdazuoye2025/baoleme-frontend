@@ -308,6 +308,15 @@ const privacyPolicyVisible = ref(false)
 const registerSuccessVisible = ref(false)
 const tokenStore = useTokenStore();
 
+if (tokenStore.token) {
+  router.push(
+    tokenStore.role === 'customer' ? '/customer/home' :
+    tokenStore.role === 'merchant' ? '/merchant/shops' :
+    tokenStore.role === 'rider' ? '/rider/recommend' :
+    '/admin'
+  )
+}
+
 // 登录表单
 const loginFormRef = ref<FormInst | null>(null)
 const loginForm = reactive({

@@ -78,7 +78,7 @@ export async function postOrder(shopId: string, addressId: string, note: string)
   return res.data as Order[]
 }
 
-export async function getOrder(orderId: number) {
+export async function getOrder(orderId: string) {
   const res = await axios.patch(`${apiRoot}/orders/${orderId}/rider`, {
     headers: {Authorization: `Bearer ${useTokenStore().token}`}
   })

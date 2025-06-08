@@ -100,6 +100,11 @@ const handleAvatarClicked = () => {
     showAvatarUploader.value = true
   }
 }
+
+const logout = () => {
+  tokenStore.clearToken()
+  router.push({ name: 'Login' })
+}
 </script>
 <template>
   <div id="user-view">
@@ -137,6 +142,9 @@ const handleAvatarClicked = () => {
           >
           <n-button type="primary" v-if="isCurrentUser" @click="showEmailEditor = true"
             >修改邮箱</n-button
+          >
+          <n-button type="primary" v-if="isCurrentUser" @click="logout()"
+            >退出登录</n-button
           >
         </n-flex>
       </n-card>

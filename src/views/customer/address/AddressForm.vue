@@ -131,7 +131,7 @@ const handleAddressSelect = (province: string, city: string, district: string, a
   formData.province = province;
   formData.city = city;
   formData.district = district;
-  formData.address = `${province}${city}${district}${address}`;
+  formData.address = `${address}`;
   formData.coordinate = [lng, lat];
   showAddressSelector.value = false;
 };

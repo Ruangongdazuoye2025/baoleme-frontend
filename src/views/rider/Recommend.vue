@@ -16,26 +16,18 @@
             <n-list-item v-for="order in newOrders" :key="order.id">
               <n-card class="order-item">
                 <div class="order-header">
-                  <div class="time-group">
-                    <span class="delivery-time">{{ formatDeliveryTime(order) }}</span>
-                    <span class="delivery-lasttime">{{ formatLastDeliveryTime(order) }}</span>
-                  </div>
-                  <span class="delivery-fee">¥{{ order.deliveryFee }}</span>
+                  <span class="delivery-fee">¥{{ (order.deliveryFee / 100).toFixed(2) }}</span>
                 </div>
 
                 <div class="address-info">
                   <div class="address-item">
-                    <div>
-                      <span class="distance">{{ calculateDistance(order.shopAddress) }}km</span>
-                    </div>
                     <div class="address-detail">
-                      <div class="address-title">{{order.shop}}</div>
+                      <div class="address-title">{{ order.shopName }}</div>
                       <div class="address-content">{{formatAddress(order.shopAddress) }}</div>
                     </div>
                   </div>
                   <br>
                   <div class="address-item">
-                    <span class="distance">{{ calculateDistance(order.customerAddress) }}km</span>
                     <div class="address-detail">
                       <div class="address-title">{{ order.customerAddress.address }}</div>
                     </div>
@@ -74,19 +66,7 @@
                 </div>
 
                 <div class="slide-container">
-                  <n-slider 
-                    v-model:value="sliderValue[order.id]" 
-                    :step="1" 
-                    :max="100"
-                    :disabled="order.rider"
-                    @update:value="handleSliderChange($event, order)"
-                    @click="handleSliderClick(order)"
-                  >
-                    <template #thumb>
-                      <div class="custom-thumb"></div>
-                    </template>
-                  </n-slider>
-                  <span class="slide-text">滑动接单</span>
+                  <n-button type="primary" style="width: 100%;" @click="handleTakeOrder(order)">接单</n-button>
                 </div>
               </n-card>
             </n-list-item>
@@ -101,7 +81,7 @@
         </n-spin>
       </n-tab-pane>
       
-      <n-tab-pane name="delivering" tab="配送中">
+      <n-tab-pane v-if="false" name="delivering" tab="配送中">
         <n-list v-infinite-scroll="() => fetchOrders(true)"
                :infinite-scroll-disabled="loading || !hasMore"
                :infinite-scroll-distance="10">
@@ -198,6 +178,7 @@ import DeliveryMap from '../DeliveryMap.vue'
 import { apiRoot } from '@/config/api'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { useTokenStore } from '@/stores/token'
+import { getShopInfo } from '@/api/shop'
 
 // 状态变量
 const activeTab = ref('new')
@@ -231,6 +212,10 @@ const tokenStore = useTokenStore()
 // 获取订单列表
 const fetchOrders = async (isLoadMore = false) => {
   if (loading.value || (!isLoadMore && !hasMore.value)) return
+  if (!riderLat.value || !riderLon.value) {
+    message.error('请先获取定位')
+    return
+  }
 
   try {
     loading.value = true
@@ -265,15 +250,17 @@ const fetchOrders = async (isLoadMore = false) => {
     }
 
     // 初始化新订单的状态
-    newOrders.forEach(order => {
+    await Promise.all(newOrders.map(async order => {
       if (!sliderValue.value[order.id]) {
         sliderValue.value[order.id] = 0
       }
-      expandedItems.value[order.id] = false
-      expandedNotes.value[order.id] = false
-    })
+      expandedItems.value[order.id] = true
+      expandedNotes.value[order.id] = true
+      order.shopName = (await getShopInfo(order.shop)).name
+    }))
   } catch (error) {
-    message.error('获取订单列表失败')
+    message.error(`获取订单列表失败`)
+    console.error(error)
   } finally {
     loading.value = false
   }
@@ -294,7 +281,6 @@ const getLocation = async () => {
 
 // 重置分页并重新获取数据
 const resetAndFetch = async () => {
-  await getLocation()
   currentPage.value = 0
   hasMore.value = true
   orders.value = []
@@ -310,24 +296,18 @@ const toggleExpand = (orderId, type) => {
 }
 
 //滑块变化处理
-const handleSliderChange = async (value, order) => {
-  if (value >= 100 && slidingOrderId.value !== order.id) {
-    slidingOrderId.value = order.id
-    await takeOrder(order)
-  }
-}
-
-// 滑块点击处理
-const handleSliderClick = (order) => {
-  if (sliderValue.value[order.id] < 100) {
-    sliderValue.value[order.id] = 0
-  }
+const handleTakeOrder = async (order) => {
+  await takeOrder(order)
 }
 
 // 接单方法
 const takeOrder = async (order) => {
   try {
-    await axios.patch(`/orders/${order.id}/status`, {status: 'delivering'})
+    await axios.patch(`${apiRoot}/orders/${order.id}/rider`, undefined, {
+      headers: {
+        'Authorization': `Bearer ${tokenStore.token}`,
+      }
+    })
     message.success('接单成功')
     order.status = 'delivering';
     sliderValue.value[order.id] = 0

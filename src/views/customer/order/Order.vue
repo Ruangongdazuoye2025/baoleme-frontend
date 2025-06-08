@@ -12,6 +12,7 @@
           <n-tab-pane name="cancelled" tab="已取消" />
         </n-tabs>
         <n-tabs v-else-if="userRole === 'rider'" type="line" v-model:value="currentTab" animated class="custom-tabs">
+          <n-tab-pane name="all" tab="全部" />
           <n-tab-pane name="delivering" tab="配送中" />
           <n-tab-pane name="finished" tab="已完成" />
         </n-tabs>

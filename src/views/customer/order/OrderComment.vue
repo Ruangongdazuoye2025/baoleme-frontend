@@ -62,6 +62,7 @@ import { ArrowBack, Flower } from '@vicons/ionicons5'
 import axios from 'axios'
 import { createComment, getCommentByOrder } from '@/api/comment'
 import { getShopInfo } from '@/api/shop'
+import { getOrder } from '@/api/orders'
 
 const router = useRouter()
 const route = useRoute()
@@ -78,8 +79,8 @@ const message = useMessage()
 const getOrderInfo = async () => {
   try {
     // 获取订单信息
-    const response = await axios.get(`/orders/${orderId}`)
-    const shopId = response.data.shop
+    const response = await getOrder(orderId)
+    const shopId = response.shop!
     const shopResponse = await getShopInfo(shopId)
     // 店铺信息加载后赋值
     shopInfo.value = shopResponse
