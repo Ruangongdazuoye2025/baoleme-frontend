@@ -9,82 +9,108 @@
             <h1 class="title">订单详情</h1>
         </div>
 
-        <!-- 概要部分 -->
-        <n-card class="summary-card">
-            <div class="summary-wrapper">
-                <!-- 左侧头像与概要 -->
-                <div class="summary-left">
-                    <n-avatar v-if="shopInfo?.cover" :src="shopInfo.cover.origin" :size="200" />
-                    <div class="info-list">
-                        <div class="store-name">{{ shopInfo?.name || "未知店铺" }}</div>
-                        <div class="order-time">{{ order?.createdAt }}</div>
-                        <div v-if="riderInfo">骑手：{{ riderInfo.name }}</div>
-                    </div>
-                </div>
-                <!-- 右侧详情 -->
-                <div class="summary-right">
-                    <div class="store-link" @click="goToShop(order?.shop!)">店铺链接 →</div>
-                    <div class="detail-wrapper">
-                        <div class="actions">
-                            <n-button v-if="role==='customer' && order?.status===Status.Unpaid" strong size="small" type="error" @click="handleDeleteOrder">删除订单</n-button>
-                            <n-button v-if="role==='merchant' && order?.status===Status.Preparing" strong size="small" type="success" @click="handleMarkPrepared">标记为已备餐</n-button>
-                            <n-button v-if="role==='rider' && order?.status===Status.Delivering" strong size="small" type="success" @click="handleMarkFinished">标记为已送达</n-button>
-                            <n-button v-if="role==='rider' && order?.status===Status.Delivering" strong size="small" @click="handleUpdateDeliveryLocation">更新当前位置</n-button>
-                        </div>
-                        <n-collapse class="order-info-collapse">
-                            <n-collapse-item title="交易信息" name="1">
-                                <p>实付：￥{{ order?.total ? (order.total/100).toFixed(2) : '--' }}</p>
-                                <p>配送费：￥{{ order?.deliveryFee ? (order.deliveryFee/100).toFixed(2) : '--' }}</p>
-                                <p>合计：￥{{ order?.total && order?.deliveryFee ? ((order.total+order.deliveryFee)/100).toFixed(2) : '--' }}</p>
-                                <p>订单号：{{ order?.id }}</p>
-                                <p>支付时间：{{ order?.paidAt }}</p>
-                                <p>准备完成时间：{{ order?.preparedAt }}</p>
-                                <p>配送时间：{{ order?.deliveredAt }}</p>
-                                <p>送达时间：{{ order?.finishedAt }}</p>
-                            </n-collapse-item>
-                            <n-collapse-item title="收货信息" name="2">
-                                <p>收货人：{{ customerInfo?.name }}</p>
-                                <p>联系电话：{{ order?.customerAddress?.tel }}</p>
-                                <p>地址：{{ order?.customerAddress?.address }} {{ order?.customerAddress?.city }} {{ order?.customerAddress?.district }}</p>
-                            </n-collapse-item>
-                            <n-collapse-item title="物流信息" name="3">
-                                <p>配送员：{{ riderInfo?.name || '暂无' }}</p>
-                                <p>配送时间：{{ order?.deliveredAt }}</p>
-                                <p>送达时间：{{ order?.finishedAt }}</p>
-                                <p>配送位置：{{ order?.delivery ? order.delivery.longitude + ',' + order.delivery.latitude : '暂无' }}</p>
-                                <p>店铺信息：{{ shopInfo?.address?.address }}</p>
-                            </n-collapse-item>
-                            <n-collapse-item title="商品列表" name="5">
-                                <ul>
-                                    <li v-for="item in orderItems" :key="item.id">
-                                        <img :src="item.cover?.origin" style="width:40px;height:40px;object-fit:cover;margin-right:8px;" />
-                                        {{ item.name }} x{{ item.quantity }} ￥{{ item.price/100 }}
-                                    </li>
-                                </ul>
-                            </n-collapse-item>
-                            <n-collapse-item title="其它信息" name="4">
-                                <p>备注： {{ order?.note || "无" }} </p>
-                            </n-collapse-item>
-                        </n-collapse>
-                    </div>
-                </div>
+        <div class="summary-wrapper" style="width: 100%;">
+            <div class="detail-wrapper" style="max-width: 800px; margin: auto;">
+                <n-card>
+                  <div style="font-size: 1.5em;" class="store-link" v-if="shopInfo" @click="goToShop(order?.shop!)">{{ shopInfo?.name }} →</div>
+                  <n-list>
+                    <n-list-item v-for="item in orderItems">
+                        <n-thing :title="item.name" :description="`￥${(item.price / item.quantity / 100).toFixed(2)} × ${item.quantity}`">
+                            <template #avatar>
+                              <n-image :src="item.cover?.thumbnail" style="width: 60px; height: 60px; object-fit: cover;" />
+                            </template>
+                        </n-thing>
+                    </n-list-item>
+                  </n-list>
+                  <div v-if="order" style="width: 100%">
+                    <n-flex class="order-info" justify="space-between">
+                      <span>配送费</span>
+                      <span>¥{{ (order.deliveryFee / 100).toFixed(2) }}</span>
+                    </n-flex>
+                    <n-flex class="order-info" justify="space-between">
+                      <span>合计</span>
+                      <span>¥{{ (order.total / 100).toFixed(2) }}</span>
+                    </n-flex>
+                    <n-flex class="order-info" justify="space-between">
+                      <span>备注</span>
+                      <span>{{ order.note }}</span>
+                    </n-flex>
+                  </div>
+                </n-card>
+                <n-card v-if="riderInfo">
+                  <n-thing :title="riderInfo.name" description="骑手">
+                    <template #avatar>
+                      <n-avatar :src="riderInfo.avatar.thumbnail" fallback-src="/default-avatar.webp" />
+                    </template>
+                    <template #header-extra>
+                      <n-button @click="router.push(`/user/${riderInfo.id}`)">查看骑手信息</n-button>
+                    </template>
+                  </n-thing>
+                </n-card>
+                <n-card>
+                  <div v-if="order" style="width: 100%">
+                    <n-flex class="order-info" justify="space-between">
+                      <span>订单编号</span>
+                      <span>{{ order.id }}</span>
+                    </n-flex>
+                    <n-flex class="order-info" justify="space-between">
+                      <span>下单时间</span>
+                      <span>{{ (new Date(order.createdAt)).toLocaleString() }}</span>
+                    </n-flex>
+                    <n-flex v-if="order.paidAt" class="order-info" justify="space-between">
+                      <span>付款时间</span>
+                      <span>{{ (new Date(order.paidAt)).toLocaleString() }}</span>
+                    </n-flex>
+                    <n-flex v-if="order.preparedAt" class="order-info" justify="space-between">
+                      <span>准备完成时间</span>
+                      <span>{{ (new Date(order.preparedAt)).toLocaleString() }}</span>
+                    </n-flex>
+                    <n-flex v-if="order.deliveredAt" class="order-info" justify="space-between">
+                      <span>配送开始时间</span>
+                      <span>{{ (new Date(order.deliveredAt)).toLocaleString() }}</span>
+                    </n-flex>
+                    <n-flex v-if="order.finishedAt" class="order-info" justify="space-between">
+                      <span>配送完成时间</span>
+                      <span>{{ (new Date(order.finishedAt)).toLocaleString() }}</span>
+                    </n-flex>
+                    <n-flex v-if="order.canceledAt" class="order-info" justify="space-between">
+                      <span>取消时间</span>
+                      <span>{{ (new Date(order.canceledAt)).toLocaleString() }}</span>
+                    </n-flex>
+                  </div>
+                </n-card>
+                <n-card class="map-container" v-if="order && order.shopAddress && order.customerAddress">
+                  <n-flex v-if="order.shopAddress" class="order-info" justify="space-between">
+                   <DeliveryMap 
+                      style="height: 300px;"
+                      :start-longitude="order.shopAddress.coordinate[0]" 
+                      :start-latitude="order.shopAddress.coordinate[1]"
+                      :end-longitude="order.customerAddress.coordinate[0]"
+                      :end-latitude="order.customerAddress.coordinate[1]"
+                      v-if="order.shopAddress && order.customerAddress"
+                      :current-longitude="order.delivery ? order.delivery.longitude : 0"
+                      :current-latitude="order.delivery ? order.delivery.latitude : 0"
+                    />
+                  </n-flex>
+                  <n-flex v-if="order.shopAddress" class="order-info" justify="space-between">
+                    <span>店铺地址</span>
+                    <span>{{ order.shopAddress.province }}{{ order.shopAddress.city }}{{ order.shopAddress.district }}{{ order.shopAddress.address }}</span>
+                  </n-flex>
+                  <n-flex v-if="order.shopAddress" class="order-info" justify="space-between">
+                    <span>店铺联系方式</span>
+                    <span>{{ order.shopAddress.name }} {{ order.shopAddress.tel }}</span>
+                  </n-flex>
+                  <n-flex v-if="order.shopAddress" class="order-info" justify="space-between">
+                    <span>顾客地址</span>
+                    <span>{{ order.customerAddress.province }}{{ order.customerAddress.city }}{{ order.customerAddress.district }}{{ order.customerAddress.address }}</span>
+                  </n-flex>
+                  <n-flex v-if="order.shopAddress" class="order-info" justify="space-between">
+                    <span>顾客联系方式</span>
+                    <span>{{ order.customerAddress.name }} {{ order.customerAddress.tel }}</span>
+                  </n-flex>
+              </n-card>
             </div>
-        </n-card>
-        <!-- 反馈与权益 -->
-        <n-card class="feedback-card">
-            <p>如有问题，请点击反馈或查看订单权益。</p>
-        </n-card>
-        <n-card class="map-container" v-if="order && order.shopAddress && order.customerAddress">
-            <DeliveryMap 
-                :start-longitude="order.shopAddress.coordinate[0]" 
-                :start-latitude="order.shopAddress.coordinate[1]"
-                :end-longitude="order.customerAddress.coordinate[0]"
-                :end-latitude="order.customerAddress.coordinate[1]"
-                v-if="order.shopAddress && order.customerAddress"
-                :current-longitude="order.delivery ? order.delivery.longitude : 0"
-                :current-latitude="order.delivery ? order.delivery.latitude : 0"
-            />
-        </n-card>
+        </div>
     </div>
     <n-back-top :bottom="160"></n-back-top>
 </template>
@@ -103,6 +129,7 @@ import type { UserData } from '@/types/user'
 import DeliveryMap from '@/views/DeliveryMap.vue'
 import axios from 'axios'
 import { apiRoot } from '@/config/api'
+import { ArrowBack } from '@vicons/ionicons5'
 
 const route = useRoute()
 const router = useRouter()
@@ -239,27 +266,20 @@ async function updateOrderDelivery(orderId: string, latitude: number, longitude:
 
 .top-bar {
   display: flex;
-  justify-content: space-between;
+  justify-content: left;
   align-items: center;
   padding: 8px 0;
   flex-shrink: 0;
 }
 
 .title {
+  margin-left: 16px;
     font-size: 20px;
     font-weight: bold;
-    margin-bottom: 12px;
 }
 
 .summary-card {
     margin-bottom: 16px;
-}
-
-.summary-wrapper {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
 }
 
 .summary-left {
@@ -315,13 +335,6 @@ async function updateOrderDelivery(orderId: string, latitude: number, longitude:
     color: #666;
 }
 
-.map-container {
-    margin-top: auto;
-    margin-bottom: auto;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-}
-
 .recommend-card-container {
     display: flex;
     flex-wrap: wrap;
@@ -345,5 +358,8 @@ async function updateOrderDelivery(orderId: string, latitude: number, longitude:
     text-align: center;
     font-size: 12px;
     color: #444;
+}
+.order-info > span:last-child {
+  opacity: 0.8;
 }
 </style>

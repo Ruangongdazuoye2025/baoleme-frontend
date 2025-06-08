@@ -5,10 +5,6 @@ import { NButton, NInput, NInputGroup, useMessage, NInfiniteScroll, NList, NList
 import { CheckCircleFilled } from "@vicons/antd";
 import { useGeolocation } from "@/composables/useGeolocation";
 
-(window as any)._AMapSecurityConfig = {
-    serviceHost: import.meta.env.VITE_AMAP_SERVICE,
-}
-
 let map: any
 let dummyMap: any
 
@@ -26,6 +22,9 @@ let AMap: any
 let marker: any
 
 onMounted(async () => {
+    (window as any)._AMapSecurityConfig = {
+        serviceHost: import.meta.env.VITE_AMAP_SERVICE,
+    }
     AMap = await AMapLoader.load({
         key: import.meta.env.VITE_AMAP_KEY,
         version: "2.0",

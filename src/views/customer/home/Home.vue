@@ -163,14 +163,14 @@
               >
                 <div class="location-info">
                   <div class="location-name">
-                    {{ address.name }}
+                    {{ address.province }}{{ address.city }}{{ address.district }}{{ address.address }}
                     <n-tag v-if="address.isDefault" size="small" type="success" :bordered="false">默认</n-tag>
                   </div>
                   <div class="location-details">
                     <span>{{ address.tel }}</span>
                   </div>
                   <div class="location-address">
-                    {{ address.province }}{{ address.city }}{{ address.district }}{{ address.address }}
+                    {{ address.name }}
                   </div>
                 </div>
                 <n-button text @click.stop="router.push(`/address/${address.id}/edit`)">
@@ -221,7 +221,7 @@ const showLocationPicker = ref(false)
 
 // 选择位置的函数，现在接收一个完整的地址对象
 const selectLocation = (address: Address) => {
-  currentLocation.value = address.name
+  currentLocation.value = address.address
   // 后续可以考虑将选中的地址信息存入 Pinia store 或 emit 出去
   showLocationPicker.value = false
 }
@@ -237,7 +237,7 @@ const fetchUserAddresses = async () => {
     // 如果有地址，默认选中“默认地址”或第一个地址
     if (addresses.length > 0) {
       const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0]
-      currentLocation.value = defaultAddress.name
+      currentLocation.value = defaultAddress.address
     } else {
       currentLocation.value = '无可用地址'
     }

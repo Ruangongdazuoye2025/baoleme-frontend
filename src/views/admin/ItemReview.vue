@@ -31,7 +31,7 @@ const shopId = computed(() => route.params.shopId as string)
 const shopName = ref('')
 const items = ref<ProductData[]>([])
 const loading = ref(true)
-const pagination = ref<PaginationProps>({ page: 1, pageSize: 10, itemCount: 0 })
+const pagination = ref<PaginationProps>({ page: 0, pageSize: 10, itemCount: 0 })
 
 const fetchShopDetails = async () => {
     try {

@@ -2,10 +2,6 @@
 import AMapLoader from "@amap/amap-jsapi-loader";
 import { onMounted, watch } from "vue";
 
-(window as any)._AMapSecurityConfig = {
-    serviceHost: import.meta.env.VITE_AMAP_SERVICE,
-}
-
 let map: any
 let AMap: any
 
@@ -20,6 +16,9 @@ interface Props {
 const props = defineProps<Props>()
 
 onMounted(async () => {
+    (window as any)._AMapSecurityConfig = {
+        serviceHost: import.meta.env.VITE_AMAP_SERVICE,
+    }
     AMap = await AMapLoader.load({
         key: import.meta.env.VITE_AMAP_KEY,
         version: "2.0",

@@ -61,7 +61,7 @@
   const router = useRouter();
   
   const pagination = ref<PaginationProps>({
-    page: 1,
+    page: 0,
     pageSize: 10,
     itemCount: 0,
     showSizePicker: true,

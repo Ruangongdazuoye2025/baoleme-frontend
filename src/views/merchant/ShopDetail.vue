@@ -311,6 +311,9 @@ function renderShopMap() {
     map.destroy();
     map = null;
   }
+  (window as any)._AMapSecurityConfig = {
+    serviceHost: import.meta.env.VITE_AMAP_SERVICE,
+  }
   map = new AMap.Map('shop-map-container', {
     viewMode: '3D',
     zoom: 16,
