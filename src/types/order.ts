@@ -1,7 +1,5 @@
 import type { Address } from './address'
-/**
- * 订单
- */
+import type { imgURL } from './img'
 export interface Order {
     canceledAt: Date | null;
     createdAt: Date;
@@ -31,32 +29,13 @@ export interface Delivery {
 }
 
 export interface Item {
-    cover: ImgURL;
+    cover: imgURL;
     id: string;
     name: string;
     price: number;
     quantity: number;
 }
 
-/**
- * 商品封面
- *
- * ImgURL
- */
-export interface ImgURL {
-    /**
-     * 原始图像的 URL
-     */
-    origin: string;
-    /**
-     * 缩略图的 URL
-     */
-    thumbnail: string;
-}
-
-/**
- * 状态
- */
 export enum Status {
     Canceled = "canceled",
     Delivering = "delivering",
@@ -65,6 +44,13 @@ export enum Status {
     Preparing = "preparing",
     Unpaid = "unpaid",
 }
+
+export interface GetOrdersRequest {
+    p?: number;
+    pn?: number;
+    s?: Status;
+}
+
 
 
 

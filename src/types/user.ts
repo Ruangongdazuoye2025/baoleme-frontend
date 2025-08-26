@@ -1,5 +1,5 @@
 import * as uuid from 'uuid'
-
+import type { imgURL } from './img'
 export interface UserInfo {
     id: string
     email?: string
@@ -26,10 +26,7 @@ export interface UserData extends UserInfo, UserProfile {
 export interface UserComment {
     id: string
     name: string
-    avatar: {
-        origin: string
-        thumbnail: string
-    }
+    avatar: imgURL
 }
 
 export const getDisplayUserRole = (role?: string) => {

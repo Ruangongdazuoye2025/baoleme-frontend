@@ -20,3 +20,13 @@ export interface AddressCreate {
   isDefault: boolean;
   coordinate: number[];
 }
+
+export interface ShopAddress{
+  address: string
+  city: string
+  coordinate: number[]
+  district: string
+  name: string
+  province: string
+  tel: string
+}

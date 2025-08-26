@@ -1,58 +1,11 @@
-/**
- * 图像链接
- */
-export interface ImageUrl {
-    /**
-     * 原始图像的 URL
-     */
-    origin: string;
-    /**
-     * 缩略图的 URL
-     */
-    thumbnail: string;
-}
+import type { imgURL } from "./img";
+import type { ShopAddress } from "./address";
 
-/**
- * 地址信息
- */
-export interface AddressInfo {
-    /**
-     * 详细地址
-     */
-    address: string;
-    /**
-     * 地级行政区名
-     */
-    city: string;
-    /**
-     * 经纬度坐标
-     */
-    coordinate: number[];
-    /**
-     * 县级行政区名
-     */
-    district: string;
-    /**
-     * 联系人姓名
-     */
-    name: string;
-    /**
-     * 省级行政区名
-     */
-    province: string;
-    /**
-     * 联系人电话
-     */
-    tel: string;
-}
 
-/**
- * 店铺内嵌的推荐商品信息
- */
 export interface InnerRecommendedItem {
     available: boolean;
     categories: string[];
-    cover: ImageUrl;
+    cover: imgURL;
     createdAt: Date;
     description: string;
     id: string;
@@ -65,22 +18,20 @@ export interface InnerRecommendedItem {
     stockout: boolean;
 }
 
-/**
- * GET /recommended/shops 的响应体中的店铺信息
- */
+
 export interface RecommendedShop {
-    address: AddressInfo;
+    address: ShopAddress;
     averagePrice: number;
     categories: string[];
-    cover: ImageUrl;
+    cover: imgURL;
     createdAt: Date;
     deliveryPrice: number;
     deliveryThreshold: number;
     description: string;
-    detailImage: ImageUrl;
+    detailImage: imgURL;
     distance: number;
     id: string;
-    license: ImageUrl;
+    license: imgURL;
     maximumDistance: number;
     name: string;
     opened: boolean;
@@ -94,18 +45,12 @@ export interface RecommendedShop {
     verified: boolean;
 }
 
-/**
- * GET /recommended/shops 的排序字段
- */
 export enum RecommendedShopsSortBy {
     Comprehensive = "c", // 综合
     Rating = "r",        // 评分
     Time = "t",          // 时间
 }
 
-/**
- * GET /recommended/shops 的 Query 参数
- */
 export interface GetRecommendedShopsRequest {
     a?: string;
     c?: string[];
@@ -119,13 +64,10 @@ export interface GetRecommendedShopsRequest {
     t?: number;
 }
 
-/**
- * GET /recommended/items 的响应体
- */
 export interface RecommendedItem {
     available: boolean;
     categories: string[];
-    cover: ImageUrl;
+    cover:imgURL;
     createdAt: Date;
     description: string;
     id: string;
@@ -138,9 +80,6 @@ export interface RecommendedItem {
     stockout: boolean;
 }
 
-/**
- * GET /recommended/items 的排序字段
- */
 export enum RecommendedItemsSortBy {
     Comprehensive = "c", // 综合
     Rating = "r",        // 评分
@@ -148,10 +87,6 @@ export enum RecommendedItemsSortBy {
     Time = "t",          // 时间
 }
 
-
-/**
- * GET /recommended/items 的 Query 参数
- */
 export interface GetRecommendedItemsRequest {
     a?: string;
     c?: string[];

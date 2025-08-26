@@ -3,15 +3,13 @@ import { useTokenStore } from '@/stores/token'
 import type { Comment } from '@/types/comment'
 import axios from 'axios'
 
-const getToken = () => useTokenStore().token
-
 export const getShopComments = async (
   shopId: string,
   p: number,
   pn: number
 ): Promise<Comment[]> => {
   const res = await axios.get<Comment[]>(`${apiRoot}/shop/${shopId}/comments`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
+    headers: { Authorization: `Bearer ${useTokenStore().token}` },
     params: { p, pn }
   })
   return res.data
@@ -23,7 +21,7 @@ export const getCommentByOrder = async (
   const res = await axios.get<Comment>(
     `${apiRoot}/comments/by-order/${orderId}`,
     {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: { Authorization: `Bearer ${useTokenStore().token}` }
     }
   )
   return res.data
@@ -35,14 +33,14 @@ export const createComment = async (data: {
   content: string
 }): Promise<Comment> => {
   const res = await axios.post<Comment>(`${apiRoot}/comments`, data, {
-    headers: { Authorization: `Bearer ${getToken()}` }
+    headers: { Authorization: `Bearer ${useTokenStore().token}` }
   })
   return res.data
 }
 
 export const deleteComment = async (commentId: string) => {
   return await axios.delete(`${apiRoot}/comments/${commentId}`, {
-    headers: { Authorization: `Bearer ${getToken()}` }
+    headers: { Authorization: `Bearer ${useTokenStore().token}` }
   })// 返回状态
 }
 
@@ -54,7 +52,7 @@ export const updateComment = async (
     `${apiRoot}/comments/${commentId}`,
     data,
     {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: { Authorization: `Bearer ${useTokenStore().token}` }
     }
   )
   return res.data

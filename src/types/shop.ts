@@ -1,6 +1,6 @@
 import type { Address } from "./address"
 import type { imgURL } from "./img"
-
+import type { ShopAddress } from "./address"
 export interface OrderStats {
   sales: number[]
   incomes: number[]
@@ -19,22 +19,15 @@ export interface TopProducts {
   }[]
 }
 
+
 export interface ShopInfo {
   id: string;
   owner: string;
-  createdAt: string;
+  createdAt: Date;
   name: string;
   description: string;
   categories: string[];
-  address: {
-    coordinate: number[];
-    province: string;
-    city: string;
-    district: string;
-    address: string;
-    name: string;
-    tel: string;
-  };
+  address: ShopAddress;
   verified: boolean;
   opened: boolean;
   openTimeStart: number;
@@ -42,26 +35,14 @@ export interface ShopInfo {
   deliveryThreshold: number;
   deliveryPrice: number;
   maximumDistance: number;
-  cover: {
-    origin: string;
-    thumbnail: string;
-  };
-  detailImage: {
-    origin: string;
-    thumbnail: string;
-  };
-  license: {
-    origin: string;
-    thumbnail: string;
-  };
+  cover: imgURL;
+  detailImage: imgURL;
+  license: imgURL;
   rating: number;
   sale: number;
   averagePrice: number;
 }
 
-/**
- * 店铺统计数据
- */
 export interface ShopStatistic {
   averagePrice: number;
   rating: number;
@@ -74,9 +55,6 @@ export interface ShopStats {
   incomes: number[];
 }
 
-/**
- * 店铺图像
- */
 export interface ShopImg {
   cover: imgURL;
   detailImage: imgURL;
@@ -84,9 +62,6 @@ export interface ShopImg {
   [property: string]: any;
 }
 
-/**
- * 店铺资料
- */
 export interface ShopDelivery {
   address: Address;
   categories: string[];
@@ -105,15 +80,7 @@ export interface ShopProfile {
   name: string
   description: string
   categories: string[]
-  address: {
-    coordinate: number[];
-    province: string;
-    city: string;
-    district: string;
-    address: string;
-    name: string;
-    tel: string;
-  }
+  address: ShopAddress
   verified: boolean
   opened: boolean
   openTimeStart: number
@@ -123,21 +90,52 @@ export interface ShopProfile {
   maximumDistance: number
 }
 
-/**
- * 店铺配送信息
- */
 export interface ShopDeliveryInfo {
     distance: number;
     time: number;
     [property: string]: any;
 }
 
-/**
- * 店铺基本信息
- */
 export interface ShopBase {
     createdAt: Date;
     id: string;
     owner: string;
     [property: string]: any;
 }
+
+export type UpdateShopProfileData = Partial<{
+  address: Partial<ShopAddress>;
+  categories: string[];
+  deliveryPrice: number;
+  deliveryThreshold: number;
+  description: string;
+  maximumDistance: number;
+  name: string;
+  opened: boolean;
+  openTimeEnd: number;
+  openTimeStart: number;
+  verified: boolean;
+}>;
+
+export interface UpdateShopProfileResponse {
+  address:ShopAddress;
+  categories: string[];
+  deliveryPrice: number;
+  deliveryThreshold: number;
+  description: string;
+  maximumDistance: number;
+  name: string;
+  opened: boolean;
+  openTimeEnd: number;
+  openTimeStart: number;
+  verified: boolean;
+}
+
+export interface GetShopsRequest {
+  max_ca?: string
+  min_ca?: string
+  p?: number
+  pn?: number
+  q?: string
+}
+

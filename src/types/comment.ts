@@ -6,5 +6,15 @@ export interface Comment  {
   rating: number 
   content: string
   user: UserComment
-  createdAt: string
+  createdAt: Date
+}
+
+export type UpdateCommentData = Partial<{
+    content: string;
+    rating: number;
+}>
+
+export interface UpdateCommentResponse {
+    content: string;
+    rating: number;
 }
