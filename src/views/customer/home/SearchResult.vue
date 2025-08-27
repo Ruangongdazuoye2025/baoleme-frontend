@@ -287,13 +287,13 @@ const loading = ref(false)
 const searchType = ref<'product' | 'shop'>('product')
 const showFilterModal = ref(false)
 const filterForm = reactive({
-  category: null,
-  minRating: null,
-  minPrice: null,
-  maxPrice: null,
-  maxDistance: null,
-  maxDeliveryTime: null,
-  addressId: null,
+  category: null as string | null,
+  minRating: null as number | null,
+  minPrice: null as number | null,
+  maxPrice: null as number | null,
+  maxDistance: null as number | null,
+  maxDeliveryTime: null as number | null,
+  addressId: null as string | number | null,
 })
 // 结果列表
 const productResults = ref<RecommendedProduct[]>([])
@@ -320,6 +320,7 @@ const loadAddresses = async () => {
 // 选择地址
 const selectAddress = (address: Address) => {
   currentLocation.value = `${address.address}`
+  filterForm.addressId = address.id
   showLocationPicker.value = false
   // 重新搜索
   searchContent()
@@ -344,7 +345,7 @@ const minPrice = ref<number | null>(null)
 const maxPrice = ref<number | null>(null)
 const minRating = ref<number | null>(null)
 const categories = ref<string[]>([])
-const currentLocation = ref('北京航空航天大学-学生宿舍区')
+const currentLocation = ref('选择收货地址')
 const sortOptions = [
   { label: '默认排序', key: 'default' },
   { label: '销量优先', key: 'sale' },
@@ -518,6 +519,11 @@ watch(searchType, () => {
 // 组件挂载时获取初始数据
 onMounted(async () => {
   await loadAddresses() // 加载地址列表
+  if (addressList.value.length > 0) {
+    const defaultAddress = addressList.value.find(a => a.isDefault) || addressList.value[0];
+    currentLocation.value = defaultAddress.address;
+    filterForm.addressId = defaultAddress.id;
+  }
   searchContent()
 })
 </script>
